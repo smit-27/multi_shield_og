@@ -1,0 +1,16 @@
+{
+  "name": "dummy-banking-backend",
+  "version": "1.0.0",
+  "description": "Dummy Banking System — Express + SQLite Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "sql.js": "^1.10.0",
+    "uuid": "^9.0.0"
+  }
+}
