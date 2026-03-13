@@ -3,6 +3,7 @@ const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
 const { analyzeRisk } = require('../engine/riskEngine');
 const { makeDecision } = require('../engine/policyEngine');
+const crypto = require('crypto');
 
 router.post('/', (req, res) => {
   const activity = req.body;
@@ -22,19 +23,53 @@ router.post('/', (req, res) => {
      policyResult.reason, JSON.stringify(riskResult.factors)]
   );
 
-  if (policyResult.decision === 'BLOCK' || policyResult.decision === 'REQUIRE_MFA') {
-    runSql(
+  // Create incident for non-ALLOW decisions
+  let incidentId = null;
+  if (policyResult.decision !== 'ALLOW') {
+    const incResult = runSql(
       "INSERT INTO incidents (activity_id, user_id, role, action, amount, risk_score, decision, reason, factors, status) VALUES (?,?,?,?,?,?,?,?,?,'open')",
       [insertResult.lastInsertRowid, activity.user_id, activity.role || '', activity.action,
        activity.amount || 0, riskResult.score, policyResult.decision, policyResult.reason,
        JSON.stringify(riskResult.factors)]
     );
+    incidentId = incResult.lastInsertRowid;
+  }
+
+  // Build response
+  const response = {
+    risk_score: riskResult.score,
+    decision: policyResult.decision,
+    reason: policyResult.reason,
+    factors: riskResult.factors
+  };
+
+  // Tier 3: Create MFA challenge
+  if (policyResult.decision === 'REQUIRE_MFA') {
+    const challengeId = `MFA-${crypto.randomBytes(8).toString('hex')}`;
+    const otpCode = String(Math.floor(100000 + Math.random() * 900000));
+    runSql(
+      "INSERT INTO mfa_challenges (id, incident_id, user_id, username, role, action, amount, risk_score, status, step, otp_code) VALUES (?,?,?,?,?,?,?,?,'pending',0,?)",
+      [challengeId, incidentId, activity.user_id, activity.username || '', activity.role || '',
+       activity.action, activity.amount || 0, riskResult.score, otpCode]
+    );
+    response.challenge_id = challengeId;
+  }
+
+  // Tier 4: Create approval request
+  if (policyResult.decision === 'ADMIN_APPROVAL') {
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const approvalResult = runSql(
+      "INSERT INTO approval_requests (incident_id, user_id, username, role, action, amount, risk_score, status, expires_at) VALUES (?,?,?,?,?,?,?,'pending',?)",
+      [incidentId, activity.user_id, activity.username || '', activity.role || '',
+       activity.action, activity.amount || 0, riskResult.score, expiresAt]
+    );
+    response.request_id = approvalResult.lastInsertRowid;
   }
 
   runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('risk_analysis', ?, 'system')",
     [JSON.stringify({ user_id: activity.user_id, action: activity.action, risk_score: riskResult.score, decision: policyResult.decision })]);
 
-  res.json({ risk_score: riskResult.score, decision: policyResult.decision, reason: policyResult.reason, factors: riskResult.factors });
+  res.json(response);
 });
 
 module.exports = router;
