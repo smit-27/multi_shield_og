@@ -15,6 +15,8 @@ async function start() {
   app.use('/api/policies', require('./routes/policies'));
   app.use('/api/incidents', require('./routes/incidents'));
   app.use('/api/activities', require('./routes/activities'));
+  app.use('/api/mfa', require('./routes/mfa'));
+  app.use('/api/approvals', require('./routes/approvals'));
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'security-platform', timestamp: new Date().toISOString() });

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
-import Modal from '../components/Modal'
+import FreezeOverlay from '../components/FreezeOverlay'
+import JustifyModal from '../components/JustifyModal'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -9,9 +10,13 @@ export default function Customers() {
   const [customers, setCustomers] = useState([])
   const [stats, setStats] = useState({})
   const [search, setSearch] = useState('')
-  const [blockModal, setBlockModal] = useState(null)
   const [toast, setToast] = useState(null)
   const [exporting, setExporting] = useState(false)
+
+  // Tier-aware state
+  const [freezeOverlay, setFreezeOverlay] = useState(null)
+  const [justifyModal, setJustifyModal] = useState(null)
+  const [pendingAction, setPendingAction] = useState(null)
 
   const load = () => {
     const q = search ? `?search=${encodeURIComponent(search)}` : ''
@@ -22,18 +27,92 @@ export default function Customers() {
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000) }
 
+  const handleSecurityResponse = (err) => {
+    const data = err.data || err
+
+    if (data.justify_required) {
+      setJustifyModal({ data })
+      setPendingAction({ type: 'export' })
+      return
+    }
+    if (data.mfa_required) {
+      setFreezeOverlay({ mode: 'mfa', data })
+      setPendingAction({ type: 'export' })
+      return
+    }
+    if (data.admin_approval_required) {
+      setFreezeOverlay({ mode: 'admin', data })
+      setPendingAction({ type: 'export' })
+      return
+    }
+    if (data.blocked) {
+      setFreezeOverlay({ mode: 'admin', data: { ...data, reason: data.reason || data.message } })
+      setPendingAction({ type: 'export' })
+      return
+    }
+    showToast(data.message || err.message || 'An error occurred', 'error')
+  }
+
   const exportData = async () => {
     setExporting(true)
     try {
       const res = await apiFetch('/api/customers/export', { method: 'POST', body: JSON.stringify({ format: 'json' }) })
+      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        handleSecurityResponse(res)
+        return
+      }
       showToast(`Exported ${res.record_count} records`)
     } catch (err) {
-      if (err.status === 403 || err.status === 202) {
-        setBlockModal(err.data)
-      } else {
-        showToast(err.message, 'error')
-      }
+      handleSecurityResponse(err)
     } finally { setExporting(false) }
+  }
+
+  const retryPendingAction = async () => {
+    if (!pendingAction) return
+    setFreezeOverlay(null)
+    setExporting(true)
+    try {
+      const res = await apiFetch('/api/customers/export', {
+        method: 'POST',
+        body: JSON.stringify({ format: 'json' }),
+        headers: { 'X-Device': 'internal workstation' }
+      })
+      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        showToast('Action still requires additional verification', 'error')
+      } else {
+        showToast(res.message || `Exported ${res.record_count} records`)
+      }
+    } catch (err) {
+      showToast('Action could not be completed: ' + (err.message || 'Unknown error'), 'error')
+    } finally {
+      setExporting(false)
+      setPendingAction(null)
+    }
+  }
+
+  const handleJustifySubmit = async (reason) => {
+    showToast(`Justification submitted: "${reason}"`)
+    setJustifyModal(null)
+    if (pendingAction) {
+      setExporting(true)
+      try {
+        const res = await apiFetch('/api/customers/export', {
+          method: 'POST',
+          body: JSON.stringify({ format: 'json', details: `Justified: ${reason}` }),
+          headers: { 'X-Device': 'internal workstation' }
+        })
+        if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+          handleSecurityResponse(res)
+        } else {
+          showToast(res.message || `Exported ${res.record_count} records`)
+        }
+      } catch (err) {
+        handleSecurityResponse(err)
+      } finally {
+        setExporting(false)
+        setPendingAction(null)
+      }
+    }
   }
 
   const riskBadge = (r) => {
@@ -92,36 +171,23 @@ export default function Customers() {
         </div>
       </div>
 
-      <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
-        title={blockModal?.mfa_required ? 'Verification Required' : 'Export Blocked'}
-        icon="🚨"
-        footer={<button className="btn btn-outline" onClick={() => setBlockModal(null)}>Close</button>}>
-        {blockModal && (
-          <>
-            <div className={`alert-block ${blockModal.blocked ? 'danger' : 'warning'}`}>
-              <span className="alert-icon">🛑</span>
-              <div className="alert-text">
-                <div className="alert-title">{blockModal.message}</div>
-                <div>{blockModal.reason}</div>
-              </div>
-            </div>
-            <div style={{display:'flex', justifyContent:'space-between', padding:'12px 0'}}>
-              <span style={{color:'var(--text-muted)', fontSize:'13px'}}>Risk Score</span>
-              <span className="amount" style={{color:'var(--danger)', fontSize:'18px'}}>{blockModal.risk_score}/100</span>
-            </div>
-            {blockModal.factors?.length > 0 && (
-              <div className="risk-factors">
-                {blockModal.factors.map((f, i) => (
-                  <div className="risk-factor" key={i}>
-                    <span className={`factor-score ${f.score >= 15 ? 'high' : 'medium'}`}>{f.score}</span>
-                    <div>{f.factor}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </Modal>
+      {/* Tier 2: Full-screen Justification Overlay */}
+      <JustifyModal
+        show={!!justifyModal}
+        data={justifyModal?.data}
+        onSubmit={handleJustifySubmit}
+        onClose={() => { setJustifyModal(null); setPendingAction(null) }}
+      />
+
+      {/* Tier 3 & 4: Full-screen Freeze Overlay */}
+      {freezeOverlay && (
+        <FreezeOverlay
+          mode={freezeOverlay.mode}
+          data={freezeOverlay.data}
+          onResolved={() => { setTimeout(() => retryPendingAction(), 1500) }}
+          onDenied={() => { setFreezeOverlay(null); setPendingAction(null); showToast('Action was denied by admin', 'error') }}
+        />
+      )}
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>

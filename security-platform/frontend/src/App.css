@@ -254,3 +254,176 @@ tbody tr:last-child td { border-bottom: none; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .live-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--danger-light); color: var(--danger); animation: pulse 2s infinite; }
+
+/* ── Nav Badge ── */
+.nav-badge {
+  margin-left: auto; padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 700; background: var(--danger); color: white;
+  min-width: 20px; text-align: center; animation: pulse 2s infinite;
+}
+
+/* ══════════════════════════════════════
+   MFA Challenge Page
+   ══════════════════════════════════════ */
+.mfa-fullpage { min-height: 100vh; background: var(--bg-primary); }
+.mfa-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px; }
+.mfa-container { width: 100%; max-width: 600px; }
+
+.mfa-loading, .mfa-error, .mfa-success, .mfa-failed {
+  text-align: center; padding: 48px 40px;
+  background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.mfa-icon { font-size: 64px; margin-bottom: 20px; }
+.success-pulse { animation: successPulse 1.5s ease-in-out infinite; }
+@keyframes successPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+.mfa-loading .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.mfa-success h2, .mfa-failed h2, .mfa-error h2 { font-size: 22px; margin-bottom: 12px; }
+.mfa-success p, .mfa-failed p, .mfa-error p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+.text-success { color: var(--accent) !important; font-weight: 600; }
+.text-danger { color: var(--danger) !important; font-weight: 600; }
+.text-warning { color: var(--warning) !important; font-weight: 600; }
+.mfa-hint { margin-top: 16px; font-size: 13px; color: var(--text-muted); }
+
+.mfa-header {
+  text-align: center; margin-bottom: 32px;
+}
+.mfa-header h1 { font-size: 24px; font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.mfa-header p { color: var(--text-secondary); margin-top: 8px; font-size: 14px; }
+
+/* ── MFA Progress Steps ── */
+.mfa-progress {
+  display: flex; justify-content: space-between; margin-bottom: 28px;
+  background: var(--bg-card); border-radius: var(--radius); padding: 20px 24px;
+  border: 1px solid var(--border);
+}
+.mfa-step-indicator {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;
+}
+.step-circle {
+  width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; border: 2px solid var(--border); color: var(--text-muted);
+  background: var(--bg-input); transition: all 0.3s ease;
+}
+.mfa-step-indicator.done .step-circle { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+.mfa-step-indicator.active .step-circle { background: var(--accent-light); border-color: var(--accent); color: var(--accent); box-shadow: var(--glow-green); }
+.step-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.mfa-step-indicator.done .step-label { color: var(--accent); }
+.mfa-step-indicator.active .step-label { color: var(--text-primary); font-weight: 600; }
+
+/* ── MFA Info Card ── */
+.mfa-info-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 16px 20px; margin-bottom: 24px;
+}
+.mfa-info-card.danger { border-color: var(--danger); }
+.mfa-info-row {
+  display: flex; justify-content: space-between; padding: 8px 0;
+  font-size: 13px; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+.mfa-info-row:last-child { border-bottom: none; }
+
+/* ── MFA Step Card ── */
+.mfa-step-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 32px; box-shadow: var(--shadow-lg);
+}
+.step-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.step-icon { font-size: 36px; }
+.step-header h3 { font-size: 18px; font-weight: 600; }
+.step-header p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+.mfa-input-group { margin-bottom: 20px; }
+.mfa-input {
+  width: 100%; padding: 14px 18px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 16px; font-family: var(--font); background: var(--bg-input); color: var(--text-primary);
+  transition: var(--transition);
+}
+.mfa-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-light); }
+
+.otp-hint {
+  background: var(--accent-light); padding: 12px 16px; border-radius: var(--radius-sm);
+  font-size: 14px; color: var(--accent); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px; font-weight: 500;
+}
+
+.mfa-step-error {
+  background: var(--danger-light); padding: 12px 16px; border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--danger); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.mfa-verify-btn { width: 100%; justify-content: center; padding: 14px; font-size: 15px; font-weight: 600; }
+
+/* ── Face Scan ── */
+.face-scan-area { text-align: center; padding: 32px; margin-bottom: 20px; }
+.face-placeholder { color: var(--text-muted); }
+.face-outline { font-size: 80px; margin-bottom: 12px; opacity: 0.4; }
+.face-scan-animation { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; }
+.scan-circle {
+  width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent);
+  animation: scanPulse 1.5s ease-in-out infinite;
+}
+.scan-line {
+  position: absolute; top: 0; left: 10%; width: 80%; height: 3px;
+  background: var(--accent); border-radius: 2px;
+  animation: scanMove 1.5s ease-in-out infinite;
+}
+@keyframes scanPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(6, 214, 160, 0); } }
+@keyframes scanMove { 0% { top: 10px; } 50% { top: 100px; } 100% { top: 10px; } }
+.scan-text { color: var(--accent); font-weight: 500; }
+.face-done { color: var(--accent); }
+.face-check { font-size: 64px; margin-bottom: 8px; }
+
+/* ══════════════════════════════════════
+   Approval Queue
+   ══════════════════════════════════════ */
+.approval-card {
+  border-bottom: 1px solid var(--border); transition: var(--transition);
+}
+.approval-card:last-child { border-bottom: none; }
+.approval-card.expanded { background: var(--bg-card-hover); }
+
+.approval-summary {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px; cursor: pointer; transition: var(--transition);
+}
+.approval-summary:hover { background: var(--bg-card-hover); }
+
+.approval-info { display: flex; flex-direction: column; gap: 6px; }
+.approval-user { display: flex; align-items: center; gap: 8px; }
+.approval-action { display: flex; align-items: center; gap: 8px; }
+.approval-amount { font-family: var(--mono); font-weight: 600; color: var(--text-primary); }
+
+.approval-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.risk-badge {
+  padding: 4px 10px; border-radius: 6px; font-family: var(--mono); font-weight: 700; font-size: 14px;
+}
+.risk-badge.critical { background: var(--danger-light); color: var(--danger); }
+.risk-badge.high { background: var(--warning-light); color: var(--warning); }
+.approval-time { font-size: 12px; color: var(--text-muted); }
+
+.approval-detail { padding: 0 24px 24px; }
+
+.user-message-box {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 16px 20px; margin-bottom: 16px;
+}
+.user-message-box h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+.user-message-box p { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+.user-message-box.empty { border-style: dashed; }
+.user-message-box.empty p { color: var(--text-muted); font-style: italic; }
+
+.admin-decision-box { margin-top: 12px; }
+.admin-decision-box h4 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+.decision-buttons { display: flex; gap: 12px; margin-top: 12px; }
+.decision-buttons .btn { flex: 1; justify-content: center; }
+
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover:not(:disabled) { background: #059669; }
+
+.kpi-card.blue::before { background: var(--cyan); }
+
