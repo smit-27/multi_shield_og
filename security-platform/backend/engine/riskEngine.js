@@ -15,23 +15,25 @@ function analyzeRisk(activity) {
   const factors = [];
   let totalScore = 0;
 
-  // Factor 1: Amount anomaly (0-30)
+  // Factor 1: Amount anomaly (0-75)
   if (activity.amount > 0) {
-    const maxAmount = policies.max_amount || 10000000;
-    const highValue = policies.high_value || 5000000;
+    const maxAmount = policies.max_amount || 500000;
+    const highValue = policies.high_value || 100000;
 
     if (activity.amount > maxAmount) {
-      totalScore += 30;
-      factors.push({ factor: 'Transaction Amount Exceeds Limit', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} exceeds maximum limit of ₹${maxAmount.toLocaleString('en-IN')}`, score: 30, maxScore: 30 });
+      // Exceeding max limit guarantees at least MFA (65 points)
+      totalScore += 65;
+      factors.push({ factor: 'Transaction Amount Exceeds Limit', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} exceeds maximum limit of ₹${maxAmount.toLocaleString('en-IN')}`, score: 65, maxScore: 75 });
     } else if (activity.amount > highValue) {
+      // High value guarantees at least Justification (40-60 points)
       const ratio = (activity.amount - highValue) / (maxAmount - highValue);
-      const pts = Math.round(15 + ratio * 15);
+      const pts = Math.round(40 + ratio * 20); // 40 to 60 points
       totalScore += pts;
-      factors.push({ factor: 'High-Value Transaction', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} exceeds high-value threshold`, score: pts, maxScore: 30 });
+      factors.push({ factor: 'High-Value Transaction', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} exceeds high-value threshold`, score: pts, maxScore: 75 });
     } else if (activity.amount > highValue * 0.5) {
-      const pts = Math.round((activity.amount / highValue) * 10);
+      const pts = Math.round((activity.amount / highValue) * 20); // up to 20 points
       totalScore += pts;
-      factors.push({ factor: 'Moderate Transaction Amount', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} is a notable amount`, score: pts, maxScore: 30 });
+      factors.push({ factor: 'Moderate Transaction Amount', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} is a notable amount`, score: pts, maxScore: 75 });
     }
   }
 

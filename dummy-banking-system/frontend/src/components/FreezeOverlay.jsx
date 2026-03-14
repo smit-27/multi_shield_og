@@ -49,11 +49,11 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
     return () => clearInterval(pollRef.current)
   }, [mode, data, status])
 
-  // Countdown timer for admin mode
+  // Countdown timer for admin mode and escalated MFA mode
   useEffect(() => {
-    if (mode !== 'admin' && mode !== 'mfa_escalated') return
-    if (status !== 'pending') return
-
+    if (mode !== 'admin' && mode !== 'mfa_escalated' && !(mode === 'mfa' && status === 'failed')) return
+    
+    // Only start timer if we don't already have one running for this state
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0) {
@@ -132,10 +132,18 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
     return (
       <div className="freeze-overlay">
         <div className="freeze-content escalated">
-          <div className="freeze-icon">⚠️</div>
-          <h2>MFA Failed — Escalated to Admin</h2>
-          <p className="freeze-subtitle">Your MFA verification failed after 3 attempts. This action has been escalated to admin for manual approval.</p>
-          <div className="freeze-progress-bar"><div className="freeze-progress-fill warning" /></div>
+          <div className="freeze-icon pulse-icon">🛑</div>
+          <h2>Verification Failed — System Locked</h2>
+          <p className="freeze-subtitle">Your identity could not be securely verified. This action has been escalated. The system is locked for 30 minutes pending admin review.</p>
+          
+          <div className="countdown-container" style={{ margin: '20px 0' }}>
+            <div className="countdown-label">System Lockout Timer</div>
+            <div className="countdown-timer">{formatTime(timeLeft)}</div>
+            <div className="countdown-bar">
+              <div className="countdown-fill danger" style={{ width: `${(timeLeft / (30 * 60)) * 100}%`, backgroundColor: 'var(--danger-color)' }} />
+            </div>
+          </div>
+
         </div>
       </div>
     )
