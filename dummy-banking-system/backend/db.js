@@ -123,37 +123,22 @@ async function initDb() {
     db.run("INSERT INTO users VALUES ('db_admin_01','amit.patel','pass123','Amit Patel','Database Admin','IT','amit.patel@bank.com',NULL,'active')");
 
     // Accounts
-    db.run("INSERT INTO accounts VALUES ('ACC001','Treasury Main','treasury',250000000,'INR','active',datetime('now'))");
-    db.run("INSERT INTO accounts VALUES ('ACC002','Treasury Reserve','treasury',180000000,'INR','active',datetime('now'))");
-    db.run("INSERT INTO accounts VALUES ('ACC003','Loan Disbursement','operational',75000000,'INR','active',datetime('now'))");
-    db.run("INSERT INTO accounts VALUES ('ACC004','Inter-Bank Settlement','settlement',120000000,'INR','active',datetime('now'))");
-    db.run("INSERT INTO accounts VALUES ('ACC005','Customer Deposits Pool','deposits',500000000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC001','Treasury Main','treasury',5000000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC002','Treasury Reserve','treasury',4000000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC003','Loan Disbursement','operational',3000000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC004','Inter-Bank Settlement','settlement',2000000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC005','Customer Deposits Pool','deposits',5000000,'INR','active',datetime('now'))");
 
-    // Transactions
-    db.run("INSERT INTO transactions VALUES ('TX001','ACC001','withdrawal',5000000,'Cash withdrawal — Branch 42','completed','treasury_01','2026-03-12 09:15:00')");
-    db.run("INSERT INTO transactions VALUES ('TX002','ACC001','transfer',12000000,'Internal transfer to Reserve','completed','treasury_01','2026-03-12 10:30:00')");
-    db.run("INSERT INTO transactions VALUES ('TX003','ACC002','deposit',25000000,'RBI settlement credit','completed','treasury_01','2026-03-12 11:00:00')");
-    db.run("INSERT INTO transactions VALUES ('TX004','ACC003','withdrawal',8000000,'Loan disbursement batch','completed','loan_01','2026-03-11 14:20:00')");
-    db.run("INSERT INTO transactions VALUES ('TX005','ACC004','transfer',45000000,'NEFT batch settlement','completed','treasury_01','2026-03-11 16:00:00')");
-    db.run("INSERT INTO transactions VALUES ('TX006','ACC001','withdrawal',2000000,'Emergency cash withdrawal','blocked','treasury_01','2026-03-11 02:00:00')");
-    db.run("INSERT INTO transactions VALUES ('TX007','ACC005','deposit',15000000,'Bulk deposit processing','completed','treasury_01','2026-03-10 12:45:00')");
-    db.run("INSERT INTO transactions VALUES ('TX008','ACC002','transfer',30000000,'Inter-bank transfer','pending','treasury_01','2026-03-12 13:00:00')");
-
-    // Loans
-    db.run("INSERT INTO loans VALUES ('LN001','Vikram Industries Pvt Ltd','CUST001','business',50000000,10.5,60,'pending',NULL,NULL,'2026-03-10 10:00:00','2026-03-10 10:00:00')");
-    db.run("INSERT INTO loans VALUES ('LN002','Sunita Reddy','CUST002','home',8500000,8.5,240,'pending',NULL,NULL,'2026-03-09 14:30:00','2026-03-09 14:30:00')");
-    db.run("INSERT INTO loans VALUES ('LN003','TechCorp Solutions','CUST003','business',120000000,11.0,36,'approved',25,'loan_01','2026-03-08 09:00:00','2026-03-08 09:00:00')");
-    db.run("INSERT INTO loans VALUES ('LN004','Anita Desai','CUST004','personal',500000,14.0,24,'approved',15,'loan_01','2026-03-07 11:20:00','2026-03-07 11:20:00')");
-    db.run("INSERT INTO loans VALUES ('LN005','Global Exports Ltd','CUST005','business',200000000,9.5,48,'pending',NULL,NULL,'2026-03-11 16:00:00','2026-03-11 16:00:00')");
-    db.run("INSERT INTO loans VALUES ('LN006','Ramesh Gupta','CUST006','home',3500000,8.75,180,'rejected',72,'loan_01','2026-03-06 10:00:00','2026-03-06 10:00:00')");
+    // Transactions (No dummy data)
+    // Loans (No dummy data)
 
     // Customers
-    db.run("INSERT INTO customers VALUES ('CUST001','Vikram Industries Pvt Ltd','info@vikram.co.in','9876543210','AABCV1234F','123456789012','Mumbai, Maharashtra','current',12500000,'medium',datetime('now'),'active')");
-    db.run("INSERT INTO customers VALUES ('CUST002','Sunita Reddy','sunita.r@email.com','9876543211','BRSPS5678G','234567890123','Hyderabad, Telangana','savings',850000,'low',datetime('now'),'active')");
-    db.run("INSERT INTO customers VALUES ('CUST003','TechCorp Solutions','contact@techcorp.in','9876543212','AABCT9012H','345678901234','Bengaluru, Karnataka','current',45000000,'low',datetime('now'),'active')");
-    db.run("INSERT INTO customers VALUES ('CUST004','Anita Desai','anita.d@email.com','9876543213','CRDPA3456J','456789012345','Delhi, NCR','savings',320000,'low',datetime('now'),'active')");
-    db.run("INSERT INTO customers VALUES ('CUST005','Global Exports Ltd','ops@globalexports.com','9876543214','AABCG7890K','567890123456','Chennai, Tamil Nadu','current',78000000,'high',datetime('now'),'active')");
-    db.run("INSERT INTO customers VALUES ('CUST006','Ramesh Gupta','ramesh.g@email.com','9876543215','ERPGR1234L','678901234567','Pune, Maharashtra','savings',150000,'medium',datetime('now'),'active')");
+    db.run("INSERT INTO customers VALUES ('CUST001','Vikram Industries Pvt Ltd','info@vikram.co.in','9876543210','AABCV1234F','123456789012','Mumbai, Maharashtra','current',500000,'medium',datetime('now'),'active')");
+    db.run("INSERT INTO customers VALUES ('CUST002','Sunita Reddy','sunita.r@email.com','9876543211','BRSPS5678G','234567890123','Hyderabad, Telangana','savings',150000,'low',datetime('now'),'active')");
+    db.run("INSERT INTO customers VALUES ('CUST003','TechCorp Solutions','contact@techcorp.in','9876543212','AABCT9012H','345678901234','Bengaluru, Karnataka','current',800000,'low',datetime('now'),'active')");
+    db.run("INSERT INTO customers VALUES ('CUST004','Anita Desai','anita.d@email.com','9876543213','CRDPA3456J','456789012345','Delhi, NCR','savings',250000,'low',datetime('now'),'active')");
+    db.run("INSERT INTO customers VALUES ('CUST005','Global Exports Ltd','ops@globalexports.com','9876543214','AABCG7890K','567890123456','Chennai, Tamil Nadu','current',900000,'high',datetime('now'),'active')");
+    db.run("INSERT INTO customers VALUES ('CUST006','Ramesh Gupta','ramesh.g@email.com','9876543215','ERPGR1234L','678901234567','Pune, Maharashtra','savings',100000,'medium',datetime('now'),'active')");
 
     saveDb();
     console.log('✅ Database seeded with demo data');

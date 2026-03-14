@@ -94,7 +94,12 @@ router.post('/:challengeId/verify', (req, res) => {
   }
 
   // Verification failed
-  const newAttempts = challenge.attempts + 1;
+  let newAttempts = challenge.attempts + 1;
+  
+  // Force immediate failure on face recognition mismatch
+  if (value === 'face_failed') {
+    newAttempts = 3;
+  }
   
   if (newAttempts >= 3) {
     // Too many failures — escalate to admin approval

@@ -92,8 +92,8 @@ async function initDb() {
 
   if (count === 0) {
     const policies = [
-      ['POL001', 'Max Single Transaction', 'transaction', 'max_amount', 10000000, 'Maximum amount for a single transaction (₹1 Crore)'],
-      ['POL002', 'High Value Threshold', 'transaction', 'high_value', 5000000, 'Transactions above this are flagged (₹50 Lakhs)'],
+      ['POL001', 'Max Single Transaction', 'transaction', 'max_amount', 500000, 'Maximum amount for a single transaction (₹5 Lakhs)'],
+      ['POL002', 'High Value Threshold', 'transaction', 'high_value', 100000, 'Transactions above this are flagged (₹1 Lakh)'],
       ['POL003', 'Allowed Hours Start', 'time', 'hours_start', 8, 'Operating hours start (8 AM)'],
       ['POL004', 'Allowed Hours End', 'time', 'hours_end', 20, 'Operating hours end (8 PM)'],
       ['POL005', 'Max Records Export', 'data', 'max_export', 100, 'Max records in single export'],
