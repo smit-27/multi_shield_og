@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
   // Tier 3: Create MFA challenge
   if (policyResult.decision === 'REQUIRE_MFA') {
     const challengeId = `MFA-${crypto.randomBytes(8).toString('hex')}`;
-    const otpCode = String(Math.floor(100000 + Math.random() * 900000));
+    const otpCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     runSql(
       "INSERT INTO mfa_challenges (id, incident_id, user_id, username, role, action, amount, risk_score, status, step, otp_code) VALUES (?,?,?,?,?,?,?,?,'pending',0,?)",
       [challengeId, incidentId, activity.user_id, activity.username || '', activity.role || '',
