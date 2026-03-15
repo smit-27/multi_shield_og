@@ -72,9 +72,11 @@ export default function Treasury() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>🏛️ Treasury Operations</h2>
-        <p>Manage treasury accounts, perform withdrawals and transfers</p>
+      <div className="hero-landing-section">
+        <div className="hero-card">
+          <h3>Welcome to Treasury Operations</h3>
+          <p>Institutional liquidity management, inter-terminal transfers, and high-value withdrawals. All operations are subject to real-time risk assessment.</p>
+        </div>
       </div>
 
       <div className="kpi-grid">

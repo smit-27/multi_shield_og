@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Login from './pages/Login'
 import Treasury from './pages/Treasury'
@@ -11,6 +11,14 @@ const API = 'http://localhost:3001'
 export const AuthContext = createContext(null)
 
 export function useAuth() { return useContext(AuthContext) }
+
+export function BankLogo({ size = 48 }) {
+  return (
+    <div className="bank-logo-v2" style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d2240', borderRadius: '50%', color: 'white', fontSize: size * 0.5 }}>
+      🏦
+    </div>
+  )
+}
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('token')
@@ -33,19 +41,82 @@ export async function apiFetch(path, options = {}) {
 }
 
 function Layout() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
   if (!user) return <Navigate to="/login" />
+
+  const getPageTitle = () => {
+    if (location.pathname === '/treasury') return 'Treasury & Liquidity Portal'
+    if (location.pathname === '/loans') return 'Commercial Loan Management'
+    if (location.pathname === '/customers') return 'Unified Customer Database'
+    return 'Internal Operations'
+  }
+
   return (
-    <div className="layout">
-      <Sidebar />
-      <main className="main-content">
-        <Routes>
-          <Route path="/treasury" element={<Treasury />} />
-          <Route path="/loans" element={<Loans />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="*" element={<Navigate to="/treasury" />} />
-        </Routes>
-      </main>
+    <div className="layout-root">
+      <div className="top-alert-banner">
+        ⚠️ CONFIDENTIAL SYSTEM: All operations are logged and monitored by the Federal Security Council. Unauthorized access is a felony.
+      </div>
+      
+      <div className="secure-info-bar">
+        <span>🔒 SECURE END-TO-END ENCRYPTION ACTIVE</span>
+        <span>•</span>
+        <span>SESSION: {Math.random().toString(36).substring(7).toUpperCase()}</span>
+        <span>•</span>
+        <span>WORKSTATION: NODE-IX-{Math.floor(Math.random() * 9000 + 1000)}</span>
+      </div>
+
+      <header className="main-brand-header">
+        <div className="brand-section">
+          <div className="brand-logo-small">
+            <BankLogo size={24} />
+          </div>
+          <div className="brand-text">
+            <h1>NATIONAL BANK</h1>
+            <p>Institutional Banking & Markets</p>
+          </div>
+        </div>
+
+        <div className="header-badges">
+          <div className="badge-outline green">● SYSTEM ONLINE</div>
+          <div className="badge-outline gold">TRUSTED NODE</div>
+          <a href="#" className="access-link" onClick={(e) => { e.preventDefault(); logout(); navigate('/login'); }}>TERMINATE SESSION</a>
+        </div>
+      </header>
+
+      <div className="customer-portal-strip">
+        <div className="portal-title">{getPageTitle()}</div>
+        <div className="portal-controls">
+          <div className="lang-selector">
+            <span>Terminal Language:</span>
+            <select className="language-select"><option>English (US)</option></select>
+          </div>
+          <div className="portal-icons">
+            <button className="icon-btn">🔍</button>
+            <button className="icon-btn">⚙️</button>
+            <button className="icon-btn">🔔</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="layout-body">
+        <Sidebar />
+        <main className="main-content">
+          <Routes>
+            <Route path="/treasury" element={<Treasury />} />
+            <Route path="/loans" element={<Loans />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="*" element={<Navigate to="/treasury" />} />
+          </Routes>
+        </main>
+      </div>
+
+      <div className="float-branding">
+        <span className="float-logo">🏛️</span>
+        National Bank of India
+      </div>
     </div>
   )
 }
