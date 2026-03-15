@@ -108,11 +108,8 @@ export default function Treasury() {
       if (err.status === 403) {
         setBlockModal(err.data); setShowTransfer(false)
       } else {
-        showToast(res.message || 'Action completed successfully')
-        load()
+        showToast(err.message || 'Unknown error', 'error')
       }
-    } catch (err) {
-      showToast('Action could not be completed: ' + (err.message || 'Unknown error'), 'error')
     } finally {
       setSubmitting(false)
       setPendingAction(null)
