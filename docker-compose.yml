@@ -1,0 +1,85 @@
+# MultiShield Zero Trust Architecture — Docker Compose
+#
+# Services:
+#   1. keycloak     — Identity Provider (OIDC) on port 8080
+#   2. security     — ZTA Gateway (security-platform) on port 3002
+#   3. banking      — Dummy Banking System on port 3001 (internal only)
+#
+# Usage:
+#   docker-compose up -d
+#   Open http://localhost:8080 for Keycloak admin (admin/admin)
+#   POST http://localhost:3002/api/zta/login for authentication
+
+version: '3.8'
+
+services:
+  # ─── Keycloak Identity Provider ───
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: multishield-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-mem
+      KC_HEALTH_ENABLED: "true"
+    command: start-dev --import-realm
+    volumes:
+      - ./keycloak/realm-config.json:/opt/keycloak/data/import/realm-config.json:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - multishield-network
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─── Security Platform (ZTA Gateway) ───
+  security:
+    build:
+      context: ./security-platform/backend
+      dockerfile: Dockerfile
+    container_name: multishield-security
+    environment:
+      PORT: 3002
+      NODE_ENV: production
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: multishield
+      KEYCLOAK_CLIENT_ID: zta-gateway
+      BANKING_BACKEND_URL: http://banking:3001
+      JWT_SECRET: multishield-zta-secret-key-prod
+      ALLOWED_IPS: "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      ALLOWED_COUNTRIES: "IN,US,GB"
+    ports:
+      - "3002:3002"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - multishield-network
+    restart: unless-stopped
+
+  # ─── Dummy Banking System (Internal Only) ───
+  banking:
+    build:
+      context: ./dummy-banking-system/backend
+      dockerfile: Dockerfile
+    container_name: multishield-banking
+    environment:
+      PORT: 3001
+      SECURITY_PLATFORM_URL: http://security:3002
+    # NOTE: No external port mapping!
+    # The banking system is only accessible via the ZTA gateway (security service).
+    # Uncomment the line below for debugging only:
+    # ports:
+    #   - "3001:3001"
+    networks:
+      - multishield-network
+    restart: unless-stopped
+
+networks:
+  multishield-network:
+    driver: bridge
+    name: multishield-zta
