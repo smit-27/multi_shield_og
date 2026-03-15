@@ -17,28 +17,20 @@ A full-stack prototype demonstrating an **AI-Driven Zero Trust Security Platform
 
 ## Quick Start
 
-### 1. Start Security Platform Backend (Port 3002)
+### 1. Start the Backends & Keycloak (Docker Compose)
+This will spin up Keycloak (port 8080), Security Platform Backend (port 3002), and Dummy Banking Backend (port 3001, internal only).
 ```bash
-cd security-platform/backend
-npm install
-npm start
+docker-compose up -d
 ```
 
-### 2. Start Banking System Backend (Port 3001)
-```bash
-cd dummy-banking-system/backend
-npm install
-npm start
-```
-
-### 3. Start Banking System Frontend (Port 5173)
+### 2. Start Banking System Frontend (Port 5173)
 ```bash
 cd dummy-banking-system/frontend
 npm install
 npm run dev
 ```
 
-### 4. Start Security Platform Frontend (Port 5174)
+### 3. Start Security Platform Frontend (Port 5174)
 ```bash
 cd security-platform/frontend
 npm install
@@ -46,6 +38,7 @@ npm run dev
 ```
 
 ### Access the Applications
+- **Keycloak Admin**: http://localhost:8080 (admin/admin)
 - **Banking System**: http://localhost:5173
 - **Security Platform**: http://localhost:5174
 
