@@ -47,13 +47,6 @@ function createSecurityCheck(actionType) {
           message: 'This action has been temporarily blocked due to security verification. Your session will be locked pending admin approval.'
         });
       }
-      // MFA: allow the transaction to proceed but attach warning to response
-      // The transaction will complete, but the MFA flag is included in the response
-      req.securityResult = {
-        ...result,
-        mfa_required: result.decision === 'REQUIRE_MFA',
-        mfa_message: result.decision === 'REQUIRE_MFA' ? 'Additional verification recommended for this transaction.' : null
-      };
 
       // Tier 3: MFA required (score 60-89)
       if (result.decision === 'REQUIRE_MFA') {

@@ -1,11 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, BankLogo } from '../App'
-import Icon from './Icon'
 
 const navItems = [
-  { path: '/treasury', label: 'Treasury Operations', icon: 'treasury' },
-  { path: '/loans', label: 'Loan Management', icon: 'loans' },
-  { path: '/customers', label: 'Customer Database', icon: 'customers' },
+  { path: '/treasury', label: 'Treasury Operations', icon: '🏛️' },
+  { path: '/loans', label: 'Loan Management', icon: '📋' },
+  { path: '/customers', label: 'Customer Database', icon: '👥' },
 ]
 
 export default function Sidebar() {
@@ -27,7 +26,7 @@ export default function Sidebar() {
             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
             onClick={() => navigate(item.path)}
           >
-            <span className="icon"><Icon name={item.icon} size={20} /></span>
+            <span className="icon">{item.icon}</span>
             {item.label}
           </button>
         ))}

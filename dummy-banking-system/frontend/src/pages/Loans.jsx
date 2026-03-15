@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import Modal from '../components/Modal'
-import Icon from '../components/Icon'
-import JustifyModal from '../components/JustifyModal'
 import FreezeOverlay from '../components/FreezeOverlay'
+import JustifyModal from '../components/JustifyModal'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -131,10 +130,10 @@ export default function Loans() {
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon={<Icon name="loans" color="var(--primary)" />} label="Total Applications" value={stats.total || 0} color="blue" />
-        <KpiCard icon={<Icon name="clock" color="var(--warning)" />} label="Pending Review" value={stats.pending || 0} color="orange" />
-        <KpiCard icon={<Icon name="check" color="var(--success)" />} label="Approved" value={stats.approved || 0} color="green" />
-        <KpiCard icon={<Icon name="money" color="var(--purple)" />} label="Approved Amount" value={formatINR(stats.approvedAmount || 0)} color="purple" />
+        <KpiCard icon="📑" label="Total Applications" value={stats.total || 0} color="blue" />
+        <KpiCard icon="⏳" label="Pending Review" value={stats.pending || 0} color="orange" />
+        <KpiCard icon="✅" label="Approved" value={stats.approved || 0} color="green" />
+        <KpiCard icon="💰" label="Approved Amount" value={formatINR(stats.approvedAmount || 0)} color="purple" />
       </div>
 
       <div className="card">
@@ -182,13 +181,12 @@ export default function Loans() {
 
       {/* Legacy block modal */}
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
-        title={blockModal?.mfa_required ? 'Verification Required' : 'Action Blocked'}
-        icon={blockModal?.mfa_required ? <Icon name="warning" /> : <Icon name="block" />}
+        title="Action Blocked" icon="🚨"
         footer={<button className="btn btn-outline" onClick={() => setBlockModal(null)}>Close</button>}>
         {blockModal && (
           <>
-            <div className={`alert-block ${blockModal.blocked ? 'danger' : 'warning'}`}>
-              <span className="alert-icon">{blockModal.blocked ? <Icon name="block" /> : <Icon name="warning" />}</span>
+            <div className="alert-block danger">
+              <span className="alert-icon">🛑</span>
               <div className="alert-text">
                 <div className="alert-title">{blockModal.message}</div>
                 <div>{blockModal.reason}</div>
