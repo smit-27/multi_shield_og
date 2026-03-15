@@ -46,7 +46,7 @@ router.post('/withdraw', createSecurityCheck('withdraw'), (req, res) => {
 
   const account = queryOne('SELECT * FROM accounts WHERE id = ?', [account_id]);
   if (!account) return res.status(404).json({ error: 'Account not found' });
-  
+
   console.log(`[DEBUG] Withdraw attempt: Account ${account_id}, Balance ${account.balance}, Amount ${amount}, Type of amount: ${typeof amount}`);
   // Removed balance check for testing
 
@@ -67,7 +67,7 @@ router.post('/transfer', createSecurityCheck('transfer'), (req, res) => {
   const fromAccount = queryOne('SELECT * FROM accounts WHERE id = ?', [from_account_id]);
   const toAccount = queryOne('SELECT * FROM accounts WHERE id = ?', [to_account_id]);
   if (!fromAccount || !toAccount) return res.status(404).json({ error: 'Account not found' });
-  
+
   console.log(`[DEBUG] Transfer attempt: From ${from_account_id} (Bal: ${fromAccount.balance}) to ${to_account_id}, Amount ${amount}, Type of amount: ${typeof amount}`);
   // Removed balance check for testing
 
