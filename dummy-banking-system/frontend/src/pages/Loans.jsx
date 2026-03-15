@@ -122,9 +122,11 @@ export default function Loans() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>📋 Loan Management</h2>
-        <p>Review and manage loan applications</p>
+      <div className="hero-landing-section">
+        <div className="hero-card">
+          <h3>Commercial Loan Portfolio</h3>
+          <p>Manage corporate credit facilities, term loans, and working capital approvals. Review applications against the National Risk Framework.</p>
+        </div>
       </div>
 
       <div className="kpi-grid">

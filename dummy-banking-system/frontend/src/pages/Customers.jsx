@@ -122,9 +122,11 @@ export default function Customers() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>👥 Customer Database</h2>
-        <p>View, search, and manage customer profiles</p>
+      <div className="hero-landing-section">
+        <div className="hero-card">
+          <h3>Customer Relationship Index</h3>
+          <p>Access authorized customer records, perform KYC audits, and manage high-net-worth relationships within the secure database.</p>
+        </div>
       </div>
 
       <div className="kpi-grid">

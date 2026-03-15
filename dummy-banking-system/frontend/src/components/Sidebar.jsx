@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../App'
+import { useAuth, BankLogo } from '../App'
 
 const navItems = [
   { path: '/treasury', label: 'Treasury Operations', icon: '🏛️' },
@@ -12,13 +12,11 @@ export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const initials = user?.full_name?.split(' ').map(n => n[0]).join('') || '?'
-
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <h1><span>🏦</span> SecureBank</h1>
-        <p>Internal Operations</p>
+      <div className="sidebar-brand-box">
+        <BankLogo size={42} />
+        <div className="brand-name-large">National Bank</div>
       </div>
 
       <nav className="sidebar-nav">
@@ -34,13 +32,10 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="sidebar-user">
-        <div className="user-avatar">{initials}</div>
-        <div className="user-info">
-          <div className="name">{user?.full_name}</div>
-          <div className="role">{user?.role}</div>
-        </div>
-        <button className="btn-logout" onClick={() => { logout(); navigate('/login'); }} title="Logout">⏻</button>
+      <div className="sidebar-footer-info">
+        <p><strong>National Bank of India</strong><br/>
+        Internal Secure Operations<br/>
+        v2.4.1-PROD</p>
       </div>
     </aside>
   )
