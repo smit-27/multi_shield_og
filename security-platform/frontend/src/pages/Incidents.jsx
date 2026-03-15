@@ -1,4 +1,5 @@
-import { apiFetch } from '../App'
+import { useState, useEffect } from 'react'
+import { apiFetch, Icon } from '../App'
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([])

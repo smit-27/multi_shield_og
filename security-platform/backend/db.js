@@ -86,6 +86,49 @@ async function initDb() {
     created_at TEXT DEFAULT (datetime('now'))
   )`);
 
+  // ─── ZTA Tables ───
+
+  db.run(`CREATE TABLE IF NOT EXISTS account_locks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    reason TEXT,
+    locked_at TEXT DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL,
+    resolved INTEGER DEFAULT 0
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS zta_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    trust_level TEXT DEFAULT 'standard',
+    ip_address TEXT,
+    last_verified TEXT,
+    step_up_completed INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    expires_at TEXT
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS zta_step_up_challenges (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    username TEXT,
+    role TEXT,
+    action TEXT NOT NULL,
+    amount REAL DEFAULT 0,
+    risk_score REAL,
+    status TEXT DEFAULT 'pending',
+    current_step INTEGER DEFAULT 0,
+    attempts INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    expires_at TEXT
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS banking_tokens (
+    session_id TEXT PRIMARY KEY,
+    banking_token TEXT NOT NULL
+  )`);
+
   // Seed policies
   const result = db.exec('SELECT COUNT(*) as count FROM policies');
   const count = result[0]?.values[0]?.[0] || 0;
