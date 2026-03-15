@@ -202,7 +202,6 @@ export default function MfaChallenge() {
             try {
               const res = await apiFetch(`/api/mfa/${challengeId}/verify`, { method: 'POST', body: JSON.stringify({ value: 'face_verified' }) })
               setChallenge(prev => ({ ...prev, step: res.step }))
-              if (res.otp_hint) setOtpHint(res.otp_hint)
             } catch (err) {
               setStepError('Server error recording face match')
             } finally {
@@ -401,15 +400,15 @@ export default function MfaChallenge() {
             </div>
           ) : (
             <div className="mfa-input-group">
-              {currentStep === 3 && otpHint && (
+              {currentStep === 3 && (
                 <div className="otp-hint">
-                  <span>📱</span> {otpHint}
+                  <span>🔐</span> Request the hex OTP code from your Security Admin portal
                 </div>
               )}
               <input
                 type={currentStep === 1 ? 'password' : 'text'}
                 className="mfa-input"
-                placeholder={currentStep === 0 ? 'e.g. treasury_01' : currentStep === 1 ? 'Enter password' : 'Enter 6-digit OTP'}
+                placeholder={currentStep === 0 ? 'e.g. treasury_01' : currentStep === 1 ? 'Enter password' : 'Enter hex OTP (e.g. A3F1B20E)'}
                 value={value}
                 onChange={e => setValue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && value) handleVerify() }}
