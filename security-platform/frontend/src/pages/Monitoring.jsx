@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../App'
+import Icon from '../components/Icon'
 
 export default function Monitoring() {
   const [activities, setActivities] = useState([])
@@ -31,23 +31,23 @@ export default function Monitoring() {
     <div>
       <div className="page-header" style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
         <div>
-          <h2>📡 Live Monitoring</h2>
+          <h2><Icon name="monitoring" size={24} style={{verticalAlign:'middle', marginRight:'8px'}} /> Live Monitoring</h2>
           <p>Real-time privileged user activity monitoring</p>
         </div>
         <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
           <span className="live-badge">● LIVE</span>
           <button className={`btn btn-sm ${autoRefresh ? 'btn-primary' : 'btn-outline'}`} onClick={() => setAutoRefresh(!autoRefresh)}>
-            {autoRefresh ? '⏸ Pause' : '▶ Resume'}
+            {autoRefresh ? <><Icon name="clock" size={14} /> Pause</> : <><Icon name="monitoring" size={14} /> Resume</>}
           </button>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <div className="kpi-card cyan"><div className="kpi-icon">📊</div><div className="kpi-label">Total Activities</div><div className="kpi-value">{stats.total || 0}</div></div>
-        <div className="kpi-card green"><div className="kpi-icon">✅</div><div className="kpi-label">Allowed</div><div className="kpi-value">{stats.allowed || 0}</div></div>
-        <div className="kpi-card orange"><div className="kpi-icon">🔐</div><div className="kpi-label">MFA Required</div><div className="kpi-value">{stats.mfa || 0}</div></div>
-        <div className="kpi-card red"><div className="kpi-icon">🚫</div><div className="kpi-label">Blocked</div><div className="kpi-value">{stats.blocked || 0}</div></div>
-        <div className="kpi-card purple"><div className="kpi-icon">🎯</div><div className="kpi-label">Avg Risk Score</div><div className="kpi-value">{stats.avgRisk || 0}</div></div>
+        <div className="kpi-card cyan"><div className="kpi-icon"><Icon name="volume" /></div><div className="kpi-label">Total Activities</div><div className="kpi-value">{stats.total || 0}</div></div>
+        <div className="kpi-card green"><div className="kpi-icon"><Icon name="check" /></div><div className="kpi-label">Allowed</div><div className="kpi-value">{stats.allowed || 0}</div></div>
+        <div className="kpi-card orange"><div className="kpi-icon"><Icon name="shield" /></div><div className="kpi-label">MFA Required</div><div className="kpi-value">{stats.mfa || 0}</div></div>
+        <div className="kpi-card red"><div className="kpi-icon"><Icon name="block" /></div><div className="kpi-label">Blocked</div><div className="kpi-value">{stats.blocked || 0}</div></div>
+        <div className="kpi-card purple"><div className="kpi-icon"><Icon name="target" /></div><div className="kpi-label">Avg Risk Score</div><div className="kpi-value">{stats.avgRisk || 0}</div></div>
       </div>
 
       <div className="card">
@@ -58,7 +58,7 @@ export default function Monitoring() {
         <div className="card-body">
           {activities.length === 0 ? (
             <div className="empty-state">
-              <div className="icon">📭</div>
+              <div className="icon"><Icon name="refresh" size={48} /></div>
               <p>No activities recorded yet. Perform actions in the Banking System to see them here.</p>
             </div>
           ) : (
@@ -73,9 +73,9 @@ export default function Monitoring() {
                     {a.amount > 0 && <div className="activity-detail">Amount: ₹{Number(a.amount).toLocaleString('en-IN')}</div>}
                     {a.reason && <div className="activity-detail" style={{color: a.decision === 'BLOCK' ? 'var(--danger)' : a.decision === 'REQUIRE_MFA' ? 'var(--warning)' : 'var(--text-muted)'}}>{a.reason}</div>}
                     <div className="activity-meta">
-                      <span>👤 {a.role || 'Unknown'}</span>
-                      <span>📱 {a.device || 'Unknown'}</span>
-                      <span>🕐 {a.timestamp || a.created_at}</span>
+                      <span><Icon name="user" size={14} /> {a.role || 'Unknown'}</span>
+                      <span><Icon name="phone" size={14} /> {a.device || 'Unknown'}</span>
+                      <span><Icon name="clock" size={14} /> {a.timestamp || a.created_at}</span>
                     </div>
                   </div>
                   <div className="activity-score" style={{color: scoreColor(a.risk_score)}}>

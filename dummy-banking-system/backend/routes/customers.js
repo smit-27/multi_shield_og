@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
     params.push(s, s, s, s);
   }
   if (risk_category) { query += ' AND risk_category = ?'; params.push(risk_category); }
-  query += ' ORDER BY full_name';
+  query += ' ORDER BY id ASC';
   res.json({ customers: queryAll(query, params) });
 });
 

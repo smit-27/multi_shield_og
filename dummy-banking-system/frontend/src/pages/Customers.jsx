@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import Modal from '../components/Modal'
+import Icon from '../components/Icon'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -51,10 +52,10 @@ export default function Customers() {
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon="👤" label="Total Customers" value={stats.total || 0} color="blue" />
-        <KpiCard icon="✅" label="Active Accounts" value={stats.active || 0} color="green" />
-        <KpiCard icon="⚠️" label="High Risk" value={stats.highRisk || 0} color="red" />
-        <KpiCard icon="💰" label="Total Deposits" value={formatINR(stats.totalBalance || 0)} color="purple" />
+        <KpiCard icon={<Icon name="customers" color="var(--primary)" />} label="Total Customers" value={stats.total || 0} color="blue" />
+        <KpiCard icon={<Icon name="check" color="var(--success)" />} label="Active Accounts" value={stats.active || 0} color="green" />
+        <KpiCard icon={<Icon name="warning" color="var(--danger)" />} label="High Risk" value={stats.highRisk || 0} color="red" />
+        <KpiCard icon={<Icon name="money" color="var(--purple)" />} label="Total Deposits" value={formatINR(stats.totalBalance || 0)} color="purple" />
       </div>
 
       <div className="card">
@@ -62,13 +63,13 @@ export default function Customers() {
           <h3>Customer Records</h3>
           <div style={{display:'flex', gap:'8px'}}>
             <button className="btn btn-sm btn-outline" onClick={exportData} disabled={exporting}>
-              {exporting ? '⏳ Exporting...' : '📥 Export All'}
+              {exporting ? <><Icon name="refresh" size={14} className="spin" /> Exporting...</> : <><Icon name="withdraw" size={14} /> Export All</>}
             </button>
           </div>
         </div>
         <div className="card-body">
           <div className="search-box">
-            <span className="search-icon">🔍</span>
+            <span className="search-icon"><Icon name="customers" size={16} /></span>
             <input className="form-input" placeholder="Search customers by name, email, PAN, phone..."
               value={search} onChange={e => setSearch(e.target.value)} style={{paddingLeft:'40px'}} />
           </div>
@@ -96,12 +97,12 @@ export default function Customers() {
 
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
         title={blockModal?.mfa_required ? 'Verification Required' : 'Export Blocked'}
-        icon="🚨"
+        icon={<Icon name="block" />}
         footer={<button className="btn btn-outline" onClick={() => setBlockModal(null)}>Close</button>}>
         {blockModal && (
           <>
             <div className={`alert-block ${blockModal.blocked ? 'danger' : 'warning'}`}>
-              <span className="alert-icon">🛑</span>
+              <span className="alert-icon"><Icon name="block" /></span>
               <div className="alert-text">
                 <div className="alert-title">{blockModal.message}</div>
                 <div>{blockModal.reason}</div>

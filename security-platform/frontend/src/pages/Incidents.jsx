@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
+import Icon from '../components/Icon'
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([])
@@ -43,15 +43,15 @@ export default function Incidents() {
   return (
     <div>
       <div className="page-header">
-        <h2>🚨 Incident Management</h2>
+        <h2><Icon name="incident" size={24} style={{verticalAlign:'middle', marginRight:'8px'}} /> Incident Management</h2>
         <p>Review and resolve security incidents</p>
       </div>
 
       <div className="kpi-grid">
-        <div className="kpi-card red"><div className="kpi-icon">🔴</div><div className="kpi-label">Open Incidents</div><div className="kpi-value">{stats.open || 0}</div></div>
-        <div className="kpi-card green"><div className="kpi-icon">✅</div><div className="kpi-label">Resolved</div><div className="kpi-value">{stats.resolved || 0}</div></div>
-        <div className="kpi-card orange"><div className="kpi-icon">🚫</div><div className="kpi-label">Blocked Actions</div><div className="kpi-value">{stats.blocked || 0}</div></div>
-        <div className="kpi-card purple"><div className="kpi-icon">🎯</div><div className="kpi-label">Avg Risk Score</div><div className="kpi-value">{stats.avgRisk || 0}</div></div>
+        <div className="kpi-card red"><div className="kpi-icon"><Icon name="shield" /></div><div className="kpi-label">Open Incidents</div><div className="kpi-value">{stats.open || 0}</div></div>
+        <div className="kpi-card green"><div className="kpi-icon"><Icon name="check" /></div><div className="kpi-label">Resolved</div><div className="kpi-value">{stats.resolved || 0}</div></div>
+        <div className="kpi-card orange"><div className="kpi-icon"><Icon name="block" /></div><div className="kpi-label">Blocked Actions</div><div className="kpi-value">{stats.blocked || 0}</div></div>
+        <div className="kpi-card purple"><div className="kpi-icon"><Icon name="target" /></div><div className="kpi-label">Avg Risk Score</div><div className="kpi-value">{stats.avgRisk || 0}</div></div>
       </div>
 
       <div className="card">
@@ -91,7 +91,7 @@ export default function Incidents() {
                     </td>
                   </tr>
                 ))}
-                {incidents.length === 0 && <tr><td colSpan={9} className="empty-state"><div className="icon">✅</div><p>No incidents to display</p></td></tr>}
+                {incidents.length === 0 && <tr><td colSpan={9} className="empty-state"><div className="icon"><Icon name="check" size={48} /></div><p>No incidents to display</p></td></tr>}
               </tbody>
             </table>
           </div>

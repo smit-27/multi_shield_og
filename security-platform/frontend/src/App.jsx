@@ -3,6 +3,7 @@ import Admin from './pages/Admin'
 import Monitoring from './pages/Monitoring'
 import Incidents from './pages/Incidents'
 import ExplainableAI from './pages/ExplainableAI'
+import Icon from './components/Icon'
 
 const API = 'http://localhost:3002'
 
@@ -20,16 +21,16 @@ function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const items = [
-    { path: '/admin', label: 'Admin Dashboard', icon: '⚙️' },
-    { path: '/monitoring', label: 'Live Monitoring', icon: '📡' },
-    { path: '/incidents', label: 'Incident Management', icon: '🚨' },
-    { path: '/explainable-ai', label: 'Explainable AI', icon: '🧠' },
+    { path: '/admin', label: 'Admin Dashboard', icon: 'settings' },
+    { path: '/monitoring', label: 'Live Monitoring', icon: 'monitoring' },
+    { path: '/incidents', label: 'Incident Management', icon: 'incident' },
+    { path: '/explainable-ai', label: 'Explainable AI', icon: 'ai' },
   ]
 
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <h1><span>🛡️</span> MultiShield</h1>
+        <h1><span><Icon name="shield" size={32} /></span> MultiShield</h1>
         <p>Zero Trust Security</p>
       </div>
       <nav className="sidebar-nav">
@@ -37,7 +38,7 @@ function Sidebar() {
           <button key={item.path}
             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
             onClick={() => navigate(item.path)}>
-            <span className="icon">{item.icon}</span>{item.label}
+            <span className="icon"><Icon name={item.icon} size={20} /></span>{item.label}
           </button>
         ))}
       </nav>

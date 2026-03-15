@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
+import Icon from '../components/Icon'
 
 export default function ExplainableAI() {
   const [activities, setActivities] = useState([])
@@ -21,13 +21,13 @@ export default function ExplainableAI() {
   return (
     <div>
       <div className="page-header">
-        <h2>🧠 Explainable AI</h2>
+        <h2><Icon name="ai" size={24} style={{verticalAlign:'middle', marginRight:'8px'}} /> Explainable AI</h2>
         <p>Understand why actions were flagged — transparent risk analysis</p>
       </div>
 
       {activities.length === 0 ? (
         <div className="card"><div className="card-body empty-state">
-          <div className="icon">🧠</div>
+          <div className="icon"><Icon name="ai" size={48} /></div>
           <p>No flagged activities yet. Perform actions in the Banking System to generate risk analysis data.</p>
         </div></div>
       ) : (

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import Modal from '../components/Modal'
+import Icon from '../components/Icon'
 import { generateRandomTransactions, getRandomAmount } from '../utils/mockData'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
@@ -58,10 +59,10 @@ export default function CoreBanking() {
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon="🏦" label="Total Deposits" value={formatINR(stats.totalDeposits)} color="blue" />
-        <KpiCard icon="👥" label="Active Accounts" value={stats.activeAccounts} color="green" />
-        <KpiCard icon="💸" label="Daily Withdrawals" value={formatINR(stats.dailyWithdrawals)} color="purple" />
-        <KpiCard icon="🛡️" label="Pending KYC" value={stats.pendingVerifications} color="orange" />
+        <KpiCard icon={<Icon name="treasury" color="var(--primary)" />} label="Total Deposits" value={formatINR(stats.totalDeposits)} color="blue" />
+        <KpiCard icon={<Icon name="customers" color="var(--success)" />} label="Active Accounts" value={stats.activeAccounts} color="green" />
+        <KpiCard icon={<Icon name="money" color="var(--purple)" />} label="Daily Withdrawals" value={formatINR(stats.dailyWithdrawals)} color="purple" />
+        <KpiCard icon={<Icon name="shield" color="var(--warning)" />} label="Pending KYC" value={stats.pendingVerifications} color="orange" />
       </div>
 
       <div className="grid-2">
@@ -92,9 +93,9 @@ export default function CoreBanking() {
           <div className="card">
             <div className="card-header"><h3>Counter Operations</h3></div>
             <div className="card-body" style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              <button className="btn btn-primary" onClick={() => setShowAction('deposit')}>📥 Cash Deposit</button>
-              <button className="btn btn-outline" onClick={() => setShowAction('withdraw')}>💸 Immediate Withdrawal</button>
-              <button className="btn btn-outline" disabled>📝 Open Account</button>
+              <button className="btn btn-primary" onClick={() => setShowAction('deposit')}><Icon name="plus" size={18} style={{marginRight:'8px'}} /> Cash Deposit</button>
+              <button className="btn btn-outline" onClick={() => setShowAction('withdraw')}><Icon name="withdraw" size={18} style={{marginRight:'8px'}} /> Immediate Withdrawal</button>
+              <button className="btn btn-outline" disabled><Icon name="edit" size={18} style={{marginRight:'8px'}} /> Open Account</button>
             </div>
           </div>
 

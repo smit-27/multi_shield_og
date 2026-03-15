@@ -43,14 +43,13 @@ function createSecurityCheck(actionType) {
           message: 'Suspicious activity detected. Transaction blocked pending admin approval.'
         });
       }
-      if (result.decision === 'REQUIRE_MFA') {
-        return res.status(202).json({
-          mfa_required: true, risk_score: result.risk_score, decision: result.decision,
-          reason: result.reason, factors: result.factors || [],
-          message: 'Additional verification required. Please complete MFA.'
-        });
-      }
-      req.securityResult = result;
+      // MFA: allow the transaction to proceed but attach warning to response
+      // The transaction will complete, but the MFA flag is included in the response
+      req.securityResult = {
+        ...result,
+        mfa_required: result.decision === 'REQUIRE_MFA',
+        mfa_message: result.decision === 'REQUIRE_MFA' ? 'Additional verification recommended for this transaction.' : null
+      };
       next();
     } catch (error) {
       console.error('Security platform unreachable:', error.message);

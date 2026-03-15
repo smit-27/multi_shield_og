@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import Modal from '../components/Modal'
+import Icon from '../components/Icon'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -33,12 +34,13 @@ export default function Treasury() {
         body: JSON.stringify({ account_id: formData.account_id, amount: Number(formData.amount), description: formData.description })
       })
       showToast(res.message)
+      if (res.security?.mfa_required) {
+        setBlockModal({ ...res.security, isWarning: true, message: res.security.mfa_message || 'Additional verification recommended.', factors: res.security.factors || [] })
+      }
       setShowWithdraw(false); setFormData({}); load()
     } catch (err) {
       if (err.status === 403) {
         setBlockModal(err.data); setShowWithdraw(false)
-      } else if (err.status === 202) {
-        setBlockModal({ ...err.data, isWarning: true }); setShowWithdraw(false)
       } else {
         showToast(err.message, 'error')
       }
@@ -53,12 +55,13 @@ export default function Treasury() {
         body: JSON.stringify({ from_account_id: formData.from_account_id, to_account_id: formData.to_account_id, amount: Number(formData.amount), description: formData.description })
       })
       showToast(res.message)
+      if (res.security?.mfa_required) {
+        setBlockModal({ ...res.security, isWarning: true, message: res.security.mfa_message || 'Additional verification recommended.', factors: res.security.factors || [] })
+      }
       setShowTransfer(false); setFormData({}); load()
     } catch (err) {
       if (err.status === 403) {
         setBlockModal(err.data); setShowTransfer(false)
-      } else if (err.status === 202) {
-        setBlockModal({ ...err.data, isWarning: true }); setShowTransfer(false)
       } else {
         showToast(err.message, 'error')
       }
@@ -80,10 +83,10 @@ export default function Treasury() {
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon="💰" label="Total Balance" value={formatINR(stats.totalBalance || 0)} color="blue" change="↑ 2.4% from yesterday" />
-        <KpiCard icon="📊" label="Daily Volume" value={formatINR(stats.dailyVolume || 0)} color="green" />
-        <KpiCard icon="⏳" label="Pending Approvals" value={stats.pendingApprovals || 0} color="orange" />
-        <KpiCard icon="🚫" label="Blocked Transactions" value={stats.blockedTransactions || 0} color="red" />
+        <KpiCard icon={<Icon name="money" color="var(--primary)" />} label="Total Balance" value={formatINR(stats.totalBalance || 0)} color="blue" change="↑ 2.4% from yesterday" />
+        <KpiCard icon={<Icon name="volume" color="var(--success)" />} label="Daily Volume" value={formatINR(stats.dailyVolume || 0)} color="green" />
+        <KpiCard icon={<Icon name="clock" color="var(--warning)" />} label="Pending Approvals" value={stats.pendingApprovals || 0} color="orange" />
+        <KpiCard icon={<Icon name="block" color="var(--danger)" />} label="Blocked Transactions" value={stats.blockedTransactions || 0} color="red" />
       </div>
 
       <div className="grid-2">
@@ -113,8 +116,8 @@ export default function Treasury() {
           <div className="card">
             <div className="card-header"><h3>Quick Actions</h3></div>
             <div className="card-body" style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              <button className="btn btn-primary" onClick={() => { setFormData({}); setShowWithdraw(true) }}>💸 Large Withdrawal</button>
-              <button className="btn btn-outline" onClick={() => { setFormData({}); setShowTransfer(true) }}>🔄 Internal Transfer</button>
+              <button className="btn btn-primary" onClick={() => { setFormData({}); setShowWithdraw(true) }}><Icon name="withdraw" size={18} style={{marginRight:'8px'}} /> Large Withdrawal</button>
+              <button className="btn btn-outline" onClick={() => { setFormData({}); setShowTransfer(true) }}><Icon name="transfer" size={18} style={{marginRight:'8px'}} /> Internal Transfer</button>
             </div>
           </div>
         </div>
@@ -145,7 +148,7 @@ export default function Treasury() {
       </div>
 
       {/* Withdraw Modal */}
-      <Modal show={showWithdraw} onClose={() => setShowWithdraw(false)} title="Large Withdrawal" icon="💸"
+      <Modal show={showWithdraw} onClose={() => setShowWithdraw(false)} title="Large Withdrawal" icon={<Icon name="withdraw" />}
         footer={<><button className="btn btn-outline" onClick={() => setShowWithdraw(false)}>Cancel</button>
           <button className="btn btn-primary" onClick={handleWithdraw} disabled={submitting}>{submitting ? 'Processing...' : 'Submit Withdrawal'}</button></>}>
         <div className="form-group">
@@ -166,7 +169,7 @@ export default function Treasury() {
       </Modal>
 
       {/* Transfer Modal */}
-      <Modal show={showTransfer} onClose={() => setShowTransfer(false)} title="Internal Transfer" icon="🔄"
+      <Modal show={showTransfer} onClose={() => setShowTransfer(false)} title="Internal Transfer" icon={<Icon name="transfer" />}
         footer={<><button className="btn btn-outline" onClick={() => setShowTransfer(false)}>Cancel</button>
           <button className="btn btn-primary" onClick={handleTransfer} disabled={submitting}>{submitting ? 'Processing...' : 'Submit Transfer'}</button></>}>
         <div className="form-group">
@@ -196,12 +199,12 @@ export default function Treasury() {
       {/* Security Block Modal */}
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
         title={blockModal?.isWarning ? 'Additional Verification Required' : 'Transaction Blocked'}
-        icon={blockModal?.isWarning ? '⚠️' : '🚨'}
+        icon={blockModal?.isWarning ? <Icon name="warning" /> : <Icon name="block" />}
         footer={<button className="btn btn-outline" onClick={() => setBlockModal(null)}>Close</button>}>
         {blockModal && (
           <>
             <div className={`alert-block ${blockModal.isWarning ? 'warning' : 'danger'}`}>
-              <span className="alert-icon">{blockModal.isWarning ? '⚠️' : '🛑'}</span>
+              <span className="alert-icon">{blockModal.isWarning ? <Icon name="warning" /> : <Icon name="block" />}</span>
               <div className="alert-text">
                 <div className="alert-title">{blockModal.message}</div>
                 <div>{blockModal.reason}</div>
