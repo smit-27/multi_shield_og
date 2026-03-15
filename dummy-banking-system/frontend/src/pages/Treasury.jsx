@@ -3,6 +3,8 @@ import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
+import JustifyModal from '../components/JustifyModal'
+import FreezeOverlay from '../components/FreezeOverlay'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -143,6 +145,13 @@ export default function Treasury() {
         setPendingAction(null)
       }
     }
+  }
+
+  const retryPendingAction = () => {
+    showToast('Action processed successfully after verification')
+    setFreezeOverlay(null)
+    setPendingAction(null)
+    load()
   }
 
   const statusBadge = (s) => {
