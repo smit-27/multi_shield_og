@@ -494,6 +494,85 @@ tbody tr:last-child td { border-bottom: none; }
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
 
+/* ── Freeze Overlay ── */
+.freeze-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; animation: fadeIn 0.4s ease;
+}
+.freeze-overlay.denied { background: rgba(127, 29, 29, 0.9); }
+
+.freeze-content {
+  background: var(--bg-white); border-radius: 20px; padding: 40px 48px;
+  max-width: 560px; width: 90%; text-align: center;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.3); animation: slideUp 0.5s ease;
+}
+.freeze-content.resolved { border: 2px solid var(--success); }
+.freeze-content.denied { border: 2px solid var(--danger); }
+.freeze-content.escalated { border: 2px solid var(--warning); }
+
+.freeze-icon { font-size: 56px; margin-bottom: 16px; }
+.pulse-icon { animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+.freeze-content h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+.freeze-subtitle { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+.admin-response { font-style: italic; color: var(--text-secondary); margin-bottom: 16px; font-size: 14px; }
+
+.freeze-details {
+  background: var(--bg-primary); border-radius: var(--radius-sm);
+  padding: 16px 20px; margin-bottom: 24px; text-align: left;
+}
+.freeze-detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border-light);
+  font-size: 13px; color: var(--text-secondary);
+}
+.freeze-detail-row:last-child { border-bottom: none; }
+.risk-value { font-weight: 700; font-size: 16px; }
+.risk-value.elevated { color: var(--warning); }
+.risk-value.critical { color: var(--danger); }
+
+.freeze-action-btn { width: 100%; justify-content: center; padding: 14px 24px; font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.freeze-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; }
+.freeze-close-btn { margin-top: 16px; }
+
+.freeze-progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 20px; overflow: hidden; }
+.freeze-progress-fill { height: 100%; border-radius: 2px; animation: shimmer 1.5s ease-in-out infinite; }
+.freeze-progress-fill.resolved { background: var(--success); }
+.freeze-progress-fill.warning { background: var(--warning); }
+@keyframes shimmer { 0% { width: 0%; } 50% { width: 100%; } 100% { width: 0%; } }
+
+.freeze-factors { text-align: left; background: var(--bg-primary); border-radius: var(--radius-sm); padding: 16px 20px; }
+.freeze-factors h4 { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+.freeze-factor { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
+.factor-badge { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; min-width: 32px; text-align: center; }
+.factor-badge.high { background: var(--danger-light); color: var(--danger); }
+.factor-badge.medium { background: var(--warning-light); color: #92400e; }
+.factor-badge.low { background: var(--success-light); color: #065f46; }
+
+/* ── Countdown Timer ── */
+.countdown-container { margin-bottom: 24px; }
+.countdown-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.countdown-timer { font-size: 48px; font-weight: 800; color: var(--danger); font-family: 'Inter', monospace; letter-spacing: 2px; }
+.countdown-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.countdown-fill { height: 100%; background: linear-gradient(90deg, var(--danger), var(--warning)); border-radius: 3px; transition: width 1s linear; }
+
+/* ── Message Section (Admin Approval) ── */
+.message-section { text-align: left; margin-bottom: 24px; background: var(--bg-primary); border-radius: var(--radius-sm); padding: 20px; }
+.message-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.message-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+.message-textarea {
+  width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px; resize: vertical; min-height: 80px;
+  transition: var(--transition); background: white;
+}
+.message-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.message-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.message-status { font-size: 13px; color: var(--success); }
+
+
 /* ═══ FREEZE OVERLAY ═══ */
 .freeze-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;

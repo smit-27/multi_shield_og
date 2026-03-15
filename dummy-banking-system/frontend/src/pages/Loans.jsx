@@ -13,6 +13,11 @@ export default function Loans() {
   const [toast, setToast] = useState(null)
   const [filter, setFilter] = useState('')
 
+  // Tier-aware state
+  const [freezeOverlay, setFreezeOverlay] = useState(null)
+  const [justifyModal, setJustifyModal] = useState(null)
+  const [pendingAction, setPendingAction] = useState(null)
+
   const load = () => {
     const q = filter ? `?status=${filter}` : ''
     apiFetch(`/api/loans${q}`).then(d => setLoans(d.loans)).catch(console.error)
@@ -22,16 +27,41 @@ export default function Loans() {
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000) }
 
+  const handleSecurityResponse = (err, loanId) => {
+    const data = err.data || err
+
+    if (data.justify_required) {
+      setJustifyModal({ data })
+      setPendingAction({ loanId })
+      return
+    }
+    if (data.mfa_required) {
+      setFreezeOverlay({ mode: 'mfa', data })
+      setPendingAction({ loanId })
+      return
+    }
+    if (data.admin_approval_required) {
+      setFreezeOverlay({ mode: 'admin', data })
+      setPendingAction({ loanId })
+      return
+    }
+    if (data.blocked) {
+      setBlockModal(data)
+      return
+    }
+    showToast(data.message || err.message || 'An error occurred', 'error')
+  }
+
   const approveLoan = async (id) => {
     try {
       const res = await apiFetch(`/api/loans/${id}/approve`, { method: 'POST', body: JSON.stringify({}) })
+      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        handleSecurityResponse(res, id)
+        return
+      }
       showToast(res.message); load()
     } catch (err) {
-      if (err.status === 403 || err.status === 202) {
-        setBlockModal(err.data)
-      } else {
-        showToast(err.message, 'error')
-      }
+      handleSecurityResponse(err, id)
     }
   }
 
@@ -40,6 +70,48 @@ export default function Loans() {
       const res = await apiFetch(`/api/loans/${id}/reject`, { method: 'POST', body: JSON.stringify({}) })
       showToast(res.message); load()
     } catch (err) { showToast(err.message, 'error') }
+  }
+
+  const retryPendingAction = async () => {
+    if (!pendingAction) return
+    setFreezeOverlay(null)
+    try {
+      const res = await apiFetch(`/api/loans/${pendingAction.loanId}/approve`, { method: 'POST', body: JSON.stringify({}) })
+      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        showToast('Action still requires additional verification', 'error')
+      } else {
+        showToast(res.message || 'Loan approved successfully')
+        load()
+      }
+    } catch (err) {
+      showToast('Action could not be completed: ' + (err.message || 'Unknown error'), 'error')
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
+  const handleJustifySubmit = async (reason) => {
+    showToast(`Justification submitted: "${reason}"`)
+    setJustifyModal(null)
+    if (pendingAction) {
+      try {
+        const res = await apiFetch(`/api/loans/${pendingAction.loanId}/approve`, {
+          method: 'POST',
+          body: JSON.stringify({ details: `Justified: ${reason}` }),
+          headers: { 'X-Device': 'internal workstation' }
+        })
+        if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+          handleSecurityResponse(res, pendingAction.loanId)
+        } else {
+          showToast(res.message || 'Loan approved successfully')
+          load()
+        }
+      } catch (err) {
+        handleSecurityResponse(err, pendingAction.loanId)
+      } finally {
+        setPendingAction(null)
+      }
+    }
   }
 
   const statusBadge = (s) => {
@@ -106,6 +178,7 @@ export default function Loans() {
         </div>
       </div>
 
+      {/* Legacy block modal */}
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
         title={blockModal?.mfa_required ? 'Verification Required' : 'Action Blocked'}
         icon={blockModal?.mfa_required ? <Icon name="warning" /> : <Icon name="block" />}
@@ -119,23 +192,27 @@ export default function Loans() {
                 <div>{blockModal.reason}</div>
               </div>
             </div>
-            <div style={{display:'flex', justifyContent:'space-between', padding:'12px 0'}}>
-              <span style={{color:'var(--text-muted)', fontSize:'13px'}}>Risk Score</span>
-              <span className="amount" style={{color:'var(--danger)', fontSize:'18px'}}>{blockModal.risk_score}/100</span>
-            </div>
-            {blockModal.factors?.length > 0 && (
-              <div className="risk-factors">
-                {blockModal.factors.map((f, i) => (
-                  <div className="risk-factor" key={i}>
-                    <span className={`factor-score ${f.score >= 15 ? 'high' : 'medium'}`}>{f.score}</span>
-                    <div>{f.factor}</div>
-                  </div>
-                ))}
-              </div>
-            )}
           </>
         )}
       </Modal>
+
+      {/* Tier 2: Justification Modal */}
+      <JustifyModal
+        show={!!justifyModal}
+        data={justifyModal?.data}
+        onSubmit={handleJustifySubmit}
+        onClose={() => { setJustifyModal(null); setPendingAction(null) }}
+      />
+
+      {/* Tier 3 & 4: Freeze Overlay */}
+      {freezeOverlay && (
+        <FreezeOverlay
+          mode={freezeOverlay.mode}
+          data={freezeOverlay.data}
+          onResolved={() => { setTimeout(() => retryPendingAction(), 1500) }}
+          onDenied={() => { setFreezeOverlay(null); setPendingAction(null); showToast('Action was denied by admin', 'error') }}
+        />
+      )}
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>

@@ -17,6 +17,11 @@ export default function Treasury() {
   const [formData, setFormData] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
+  // Tier-aware state
+  const [freezeOverlay, setFreezeOverlay] = useState(null)  // { mode, data }
+  const [justifyModal, setJustifyModal] = useState(null)     // { data, pendingAction }
+  const [pendingAction, setPendingAction] = useState(null)   // { type, body }
+
   const load = () => {
     apiFetch('/api/treasury/stats').then(setStats).catch(console.error)
     apiFetch('/api/treasury/transactions?limit=15').then(d => setTransactions(d.transactions)).catch(console.error)
@@ -26,13 +31,50 @@ export default function Treasury() {
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000) }
 
+  const handleSecurityResponse = (err, actionType, actionBody) => {
+    const data = err.data || err
+
+    // Tier 2: Justification required
+    if (data.justify_required) {
+      setJustifyModal({ data })
+      setPendingAction({ type: actionType, body: actionBody })
+      return
+    }
+
+    // Tier 3: MFA required
+    if (data.mfa_required) {
+      setFreezeOverlay({ mode: 'mfa', data })
+      setPendingAction({ type: actionType, body: actionBody })
+      return
+    }
+
+    // Tier 4: Admin approval required
+    if (data.admin_approval_required) {
+      setFreezeOverlay({ mode: 'admin', data })
+      setPendingAction({ type: actionType, body: actionBody })
+      return
+    }
+
+    // Legacy block handling
+    if (data.blocked) {
+      setBlockModal(data)
+      return
+    }
+
+    // Generic error
+    showToast(data.message || err.message || 'An error occurred', 'error')
+  }
+
   const handleWithdraw = async () => {
     setSubmitting(true)
+    const body = { account_id: formData.account_id, amount: Number(formData.amount), description: formData.description }
     try {
-      const res = await apiFetch('/api/treasury/withdraw', {
-        method: 'POST',
-        body: JSON.stringify({ account_id: formData.account_id, amount: Number(formData.amount), description: formData.description })
-      })
+      const res = await apiFetch('/api/treasury/withdraw', { method: 'POST', body: JSON.stringify(body) })
+      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        handleSecurityResponse(res, 'withdraw', body)
+        setShowWithdraw(false)
+        return
+      }
       showToast(res.message)
       if (res.security?.mfa_required) {
         setBlockModal({ ...res.security, isWarning: true, message: res.security.mfa_message || 'Additional verification recommended.', factors: res.security.factors || [] })
@@ -49,11 +91,14 @@ export default function Treasury() {
 
   const handleTransfer = async () => {
     setSubmitting(true)
+    const body = { from_account_id: formData.from_account_id, to_account_id: formData.to_account_id, amount: Number(formData.amount), description: formData.description }
     try {
-      const res = await apiFetch('/api/treasury/transfer', {
-        method: 'POST',
-        body: JSON.stringify({ from_account_id: formData.from_account_id, to_account_id: formData.to_account_id, amount: Number(formData.amount), description: formData.description })
-      })
+      const res = await apiFetch('/api/treasury/transfer', { method: 'POST', body: JSON.stringify(body) })
+      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        handleSecurityResponse(res, 'transfer', body)
+        setShowTransfer(false)
+        return
+      }
       showToast(res.message)
       if (res.security?.mfa_required) {
         setBlockModal({ ...res.security, isWarning: true, message: res.security.mfa_message || 'Additional verification recommended.', factors: res.security.factors || [] })
@@ -63,9 +108,44 @@ export default function Treasury() {
       if (err.status === 403) {
         setBlockModal(err.data); setShowTransfer(false)
       } else {
-        showToast(err.message, 'error')
+        showToast(res.message || 'Action completed successfully')
+        load()
       }
-    } finally { setSubmitting(false) }
+    } catch (err) {
+      showToast('Action could not be completed: ' + (err.message || 'Unknown error'), 'error')
+    } finally {
+      setSubmitting(false)
+      setPendingAction(null)
+    }
+  }
+
+  // Handle justification submit
+  const handleJustifySubmit = async (reason) => {
+    showToast(`Justification submitted: "${reason}"`)
+    setJustifyModal(null)
+    if (pendingAction) {
+      // Retry the action with the device header set to known device to lower the score
+      setSubmitting(true)
+      try {
+        const endpoint = pendingAction.type === 'withdraw' ? '/api/treasury/withdraw' : '/api/treasury/transfer'
+        const res = await apiFetch(endpoint, {
+          method: 'POST',
+          body: JSON.stringify({ ...pendingAction.body, details: `Justified: ${reason}` }),
+          headers: { 'X-Device': 'internal workstation' }
+        })
+        if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+          handleSecurityResponse(res, pendingAction.type, pendingAction.body)
+        } else {
+          showToast(res.message || 'Action completed successfully')
+          load()
+        }
+      } catch (err) {
+        handleSecurityResponse(err, pendingAction.type, pendingAction.body)
+      } finally {
+        setSubmitting(false)
+        setPendingAction(null)
+      }
+    }
   }
 
   const statusBadge = (s) => {
@@ -196,7 +276,7 @@ export default function Treasury() {
         </div>
       </Modal>
 
-      {/* Security Block Modal */}
+      {/* Legacy Security Block Modal (fallback) */}
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
         title={blockModal?.isWarning ? 'Additional Verification Required' : 'Transaction Blocked'}
         icon={blockModal?.isWarning ? <Icon name="warning" /> : <Icon name="block" />}
@@ -210,27 +290,35 @@ export default function Treasury() {
                 <div>{blockModal.reason}</div>
               </div>
             </div>
-            <div style={{display:'flex', justifyContent:'space-between', padding:'12px 0', borderBottom:'1px solid var(--border)'}}>
-              <span style={{color:'var(--text-muted)', fontSize:'13px'}}>Risk Score</span>
-              <span className="amount" style={{color: blockModal.risk_score >= 71 ? 'var(--danger)' : 'var(--warning)', fontSize:'18px'}}>{blockModal.risk_score}/100</span>
-            </div>
-            {blockModal.factors?.length > 0 && (
-              <div className="risk-factors">
-                <p style={{fontSize:'13px', fontWeight:'600', marginTop:'8px'}}>Risk Factors:</p>
-                {blockModal.factors.map((f, i) => (
-                  <div className="risk-factor" key={i}>
-                    <span className={`factor-score ${f.score >= 15 ? 'high' : f.score >= 8 ? 'medium' : 'low'}`}>{f.score}</span>
-                    <div>
-                      <div style={{fontWeight:'500'}}>{f.factor}</div>
-                      <div style={{fontSize:'12px', color:'var(--text-muted)'}}>{f.detail}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </>
         )}
       </Modal>
+
+      {/* Tier 2: Justification Modal */}
+      <JustifyModal
+        show={!!justifyModal}
+        data={justifyModal?.data}
+        onSubmit={handleJustifySubmit}
+        onClose={() => { setJustifyModal(null); setPendingAction(null) }}
+      />
+
+      {/* Tier 3 & 4: Freeze Overlay */}
+      {freezeOverlay && (
+        <FreezeOverlay
+          mode={freezeOverlay.mode}
+          data={freezeOverlay.data}
+          onResolved={() => {
+            setTimeout(() => {
+              retryPendingAction()
+            }, 1500)
+          }}
+          onDenied={() => {
+            setFreezeOverlay(null)
+            setPendingAction(null)
+            showToast('Action was denied by admin', 'error')
+          }}
+        />
+      )}
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
