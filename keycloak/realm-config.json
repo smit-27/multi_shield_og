@@ -1,0 +1,113 @@
+{
+  "realm": "multishield",
+  "enabled": true,
+  "displayName": "MultiShield Zero Trust",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 1800,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 300,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      { "name": "treasury_operator", "description": "Treasury operations access" },
+      { "name": "loan_officer", "description": "Loan management access" },
+      { "name": "db_admin", "description": "Database administration access" },
+      { "name": "security_admin", "description": "Security platform administration" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "zta-gateway",
+      "name": "ZTA Gateway Client",
+      "description": "Zero Trust Architecture Gateway — Security Platform",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5174/*",
+        "http://localhost:3002/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3002"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600",
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "role-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "role",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "department-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "claim.name": "department",
+            "user.attribute": "department",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "rajesh.kumar",
+      "email": "rajesh.kumar@nationalbank.in",
+      "firstName": "Rajesh",
+      "lastName": "Kumar",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "pass123", "temporary": false }],
+      "realmRoles": ["treasury_operator"],
+      "attributes": { "department": ["Treasury"], "employee_id": ["treasury_01"] }
+    },
+    {
+      "username": "priya.sharma",
+      "email": "priya.sharma@nationalbank.in",
+      "firstName": "Priya",
+      "lastName": "Sharma",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "pass123", "temporary": false }],
+      "realmRoles": ["loan_officer"],
+      "attributes": { "department": ["Loans"], "employee_id": ["loans_01"] }
+    },
+    {
+      "username": "amit.patel",
+      "email": "amit.patel@nationalbank.in",
+      "firstName": "Amit",
+      "lastName": "Patel",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "pass123", "temporary": false }],
+      "realmRoles": ["db_admin"],
+      "attributes": { "department": ["Database"], "employee_id": ["db_admin_01"] }
+    }
+  ]
+}
