@@ -50,8 +50,8 @@ router.post('/:challengeId/verify', (req, res) => {
       // Static mock: accept 'pass123' (matches demo accounts) or 'mfa_verify'
       verified = value === 'pass123' || value === 'mfa_verify';
       break;
-    case 2: // Face Recognition (static mock — always passes)
-      verified = true;
+    case 2: // Face Recognition — only pass if frontend explicitly confirmed a match
+      verified = (value === 'face_verified');
       break;
     case 3: // OTP
       verified = value === challenge.otp_code;
