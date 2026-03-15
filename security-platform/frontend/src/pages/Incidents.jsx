@@ -1,5 +1,4 @@
 import { apiFetch } from '../App'
-import Icon from '../components/Icon'
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([])

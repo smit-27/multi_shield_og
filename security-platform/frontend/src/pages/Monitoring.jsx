@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../App'
-import Icon from '../components/Icon'
+
 
 export default function Monitoring() {
   const [activities, setActivities] = useState([])

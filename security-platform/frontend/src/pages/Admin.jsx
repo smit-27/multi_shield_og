@@ -1,5 +1,5 @@
 import { apiFetch } from '../App'
-import Icon from '../components/Icon'
+
 
 export default function Admin() {
   const [policies, setPolicies] = useState([])
