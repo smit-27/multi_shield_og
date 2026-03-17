@@ -1,150 +1,223 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch, Icon } from '../App'
+import { io } from 'socket.io-client'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts'
+import { Activity, ShieldAlert, Cpu, Globe, Lock, ShieldCheck, MapPin, Zap } from 'lucide-react'
+
+// Map Recharts to a simple Neon dark theme
+const chartColors = {
+  verified: '#34d399',
+  sandboxed: '#f59e0b',
+  blocked: '#f43f5e',
+  text: '#a09bb8',
+  grid: '#2d2548'
+};
 
 export default function Admin() {
-  const [policies, setPolicies] = useState([])
-  const [incidentStats, setIncidentStats] = useState({})
-  const [editing, setEditing] = useState(null)
-  const [toast, setToast] = useState(null)
-  const [activeMfa, setActiveMfa] = useState([])
-  const pollRef = useRef(null)
+  const [activities, setActivities] = useState([])
+  const [trafficStats, setTrafficStats] = useState({ verified: 0, sandboxed: 0, blocked: 0 })
+  const [riskData, setRiskData] = useState([{ time: 'Now', score: 0 }])
+  const [isConnected, setIsConnected] = useState(false)
+  const maxEvents = 50;
 
-  const load = () => {
-    apiFetch('/api/policies').then(d => setPolicies(d.policies)).catch(console.error)
-    apiFetch('/api/incidents/stats').then(setIncidentStats).catch(console.error)
-    apiFetch('/api/mfa/active/codes').then(d => setActiveMfa(d.challenges || [])).catch(console.error)
-  }
   useEffect(() => {
-    load()
-    pollRef.current = setInterval(load, 5000)
-    return () => clearInterval(pollRef.current)
+    // Connect to Backend Socket.io
+    const socket = io('http://localhost:3002')
+
+    socket.on('connect', () => {
+      setIsConnected(true)
+    })
+
+    socket.on('disconnect', () => {
+      setIsConnected(false)
+    })
+
+    // Listen for real-time ZTA activity logs
+    socket.on('zta-activity', (data) => {
+      // Add to event ticker
+      setActivities(prev => {
+        const updated = [data, ...prev]
+        if (updated.length > maxEvents) return updated.slice(0, maxEvents)
+        return updated
+      })
+
+      // Update counters
+      setTrafficStats(prev => {
+        let { verified, sandboxed, blocked } = prev;
+        if (data.action === 'BLOCKED' || data.action === 'AUTH_LOCKED') blocked += 1;
+        else if (data.action === 'SANDBOXED') sandboxed += 1;
+        else verified += 1;
+        return { verified, sandboxed, blocked }
+      })
+
+      // Update live risk chart
+      setRiskData(prev => {
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' })
+        const newPoint = { time: now, score: data.score || 0 }
+        const updated = [...prev, newPoint]
+        if (updated.length > 15) return updated.slice(updated.length - 15)
+        return updated
+      })
+    })
+
+    return () => socket.disconnect()
   }, [])
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000) }
-
-  const updatePolicy = async (id, threshold) => {
-    try {
-      await apiFetch(`/api/policies/${id}`, { method: 'PUT', body: JSON.stringify({ threshold: Number(threshold) }) })
-      showToast('Policy updated'); setEditing(null); load()
-    } catch (e) { showToast(e.message, 'error') }
-  }
-
-  const categoryIcons = { transaction: 'money', time: 'clock', data: 'volume', loan: 'loans', risk: 'target' }
-  const formatValue = (p) => {
-    if (p.category === 'transaction' || p.category === 'loan') return `₹${Number(p.threshold).toLocaleString('en-IN')}`
-    if (p.category === 'time') return `${p.threshold}:00`
-    return p.threshold
-  }
-
   return (
-    <div>
-      <div className="page-header">
-        <h2><Icon name="settings" size={24} style={{verticalAlign:'middle', marginRight:'8px'}} /> Admin Dashboard</h2>
-        <p>Configure security policies and manage system settings</p>
-      </div>
-
-      <div className="kpi-grid">
-        <div className="kpi-card green">
-          <div className="kpi-icon"><Icon name="shield" /></div>
-          <div className="kpi-label">Active Policies</div>
-          <div className="kpi-value">{policies.filter(p => p.enabled).length}</div>
+    <div className="obsidian-dashboard">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Cpu size={28} color="var(--cyan)" />
+            Cyber Security Command Center
+          </h2>
+          <p>Real-time Zero Trust Architecture Gateway telemetry</p>
         </div>
-        <div className="kpi-card red">
-          <div className="kpi-icon"><Icon name="incident" /></div>
-          <div className="kpi-label">Open Incidents</div>
-          <div className="kpi-value">{incidentStats.open || 0}</div>
-        </div>
-        <div className="kpi-card orange">
-          <div className="kpi-icon"><Icon name="warning" /></div>
-          <div className="kpi-label">Blocked Actions</div>
-          <div className="kpi-value">{incidentStats.blocked || 0}</div>
-        </div>
-        <div className="kpi-card purple">
-          <div className="kpi-icon"><Icon name="volume" /></div>
-          <div className="kpi-label">Avg Risk Score</div>
-          <div className="kpi-value">{incidentStats.avgRisk || 0}</div>
+        <div className={`status-pill ${isConnected ? 'active' : 'warning'}`}>
+          <div className="pulse" style={{ width: '8px', height: '8px', background: isConnected ? 'var(--success)' : 'var(--warning)', boxShadow: 'none' }} />
+          {isConnected ? 'SENSORS ONLINE' : 'RECONNECTING...'}
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h3><Icon name="settings" size={18} style={{marginRight:'8px'}} /> Security Policies</h3>
-          <span className="badge cyan">{policies.length} policies</span>
-        </div>
-        <div className="card-body">
-          <div className="policy-grid">
-            {policies.map(p => (
-              <div className="policy-card" key={p.id}>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px'}}>
-                  <span className="policy-category badge neutral"><Icon name={categoryIcons[p.category] || 'treasury'} size={14} style={{marginRight:'4px'}} /> {p.category}</span>
-                  <span className="badge" style={{background: p.enabled ? 'var(--success-light)' : 'var(--danger-light)', color: p.enabled ? 'var(--success)' : 'var(--danger)'}}>
-                    {p.enabled ? 'Active' : 'Disabled'}
-                  </span>
-                </div>
-                <div className="policy-name">{p.name}</div>
-                <div className="policy-desc">{p.description}</div>
-                {editing === p.id ? (
-                  <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-                    <input className="form-input" type="number" defaultValue={p.threshold} id={`policy-${p.id}`}
-                      style={{flex:1, padding:'8px 12px'}} onKeyDown={e => { if (e.key === 'Enter') updatePolicy(p.id, e.target.value) }} />
-                    <button className="btn btn-sm btn-primary" onClick={() => updatePolicy(p.id, document.getElementById(`policy-${p.id}`).value)}>Save</button>
-                    <button className="btn btn-sm btn-outline" onClick={() => setEditing(null)}>✕</button>
-                  </div>
-                ) : (
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                    <div className="policy-value">{formatValue(p)}</div>
-                    <button className="btn btn-sm btn-outline" onClick={() => setEditing(p.id)}><Icon name="edit" size={14} /> Edit</button>
-                  </div>
-                )}
+      <div className="obsidian-grid">
+        {/* Left Column: Visualizations */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Main Traffic Flow Diagram */}
+          <div className="obsidian-card">
+            <div className="obsidian-card-header">
+              <h3 className="obsidian-title obsidian-title-cyan">
+                <Activity size={18} /> ZTA Gateway Traffic Flow
+              </h3>
+            </div>
+            
+            <div className="zta-traffic-flow">
+              <div className="flow-node">
+                <div className="flow-node-title">Security Ingress Router</div>
+                <div className="flow-node-subtitle">PORT 3002 • TLS 1.3</div>
               </div>
-            ))}
+              
+              {/* Downward Lines (CSS representation) */}
+              <div style={{ width: '2px', height: '30px', background: 'var(--border-accent)' }}></div>
+              
+              <div className="flow-split">
+                <div className="flow-branch">
+                  <div className="flow-stat-box verified">
+                    <div className="stat-value">{trafficStats.verified}</div>
+                    <div className="stat-label"><ShieldCheck size={12} style={{verticalAlign:'middle', marginRight:'4px'}}/> Verified</div>
+                  </div>
+                  <div className="flow-node-subtitle">Production Core</div>
+                </div>
+
+                <div className="flow-branch">
+                  <div className="flow-stat-box sandboxed">
+                    <div className="stat-value">{trafficStats.sandboxed}</div>
+                    <div className="stat-label"><Globe size={12} style={{verticalAlign:'middle', marginRight:'4px'}}/> Micro-segmented</div>
+                  </div>
+                  <div className="flow-node-subtitle">Sandbox VLAN</div>
+                </div>
+
+                <div className="flow-branch">
+                  <div className="flow-stat-box blocked">
+                    <div className="stat-value">{trafficStats.blocked}</div>
+                    <div className="stat-label"><ShieldAlert size={12} style={{verticalAlign:'middle', marginRight:'4px'}}/> Blocked</div>
+                  </div>
+                  <div className="flow-node-subtitle">Edge Firewall</div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Risk Score Heat Map (Line Chart proxy) */}
+          <div className="obsidian-card">
+            <div className="obsidian-card-header">
+              <h3 className="obsidian-title obsidian-title-amber">
+                <Zap size={18} /> Aggregate Risk Heat Map
+              </h3>
+            </div>
+            <div style={{ width: '100%', height: '220px' }}>
+              <ResponsiveContainer>
+                <LineChart data={riskData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                  <XAxis dataKey="time" stroke={chartColors.text} fontSize={10} tickMargin={10} />
+                  <YAxis stroke={chartColors.text} fontSize={10} domain={[0, 100]} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'rgba(23, 17, 42, 0.9)', border: '1px solid var(--border-accent)', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff', fontWeight: 600 }}
+                  />
+                  <Line type="monotone" dataKey="score" stroke="var(--warning)" strokeWidth={3} dot={{ r: 3, fill: 'var(--warning)', strokeWidth: 0 }} activeDot={{ r: 6 }} animationDuration={300} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right Column: Widgets & Logs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Geographic Kill-Switch Status */}
+          <div className="obsidian-card" style={{ padding: '16px 20px' }}>
+            <div className="obsidian-card-header" style={{ marginBottom: '12px' }}>
+              <h3 className="obsidian-title" style={{ fontSize: '13px' }}>
+                <MapPin size={16} color="var(--info)" /> Geo Kill-Switch
+              </h3>
+              <div className="status-pill active">ARMED</div>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Automatically terminates sessions from non-sanctioned sovereign regions (Non-IN/US/GB).
+            </div>
+          </div>
+
+          {/* Face-Auth / Account Lockouts */}
+          <div className="obsidian-card" style={{ padding: '16px 20px' }}>
+            <div className="obsidian-card-header" style={{ marginBottom: '12px' }}>
+              <h3 className="obsidian-title" style={{ fontSize: '13px' }}>
+                <Lock size={16} color="var(--danger)" /> Step-Up Auth Watch
+              </h3>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Continuously monitoring Keycloak MFA and Biometric fallback sensors.
+            </div>
+          </div>
+
+          {/* Live Event Ticker */}
+          <div className="obsidian-card" style={{ flex: 1 }}>
+            <div className="obsidian-card-header">
+              <h3 className="obsidian-title">
+                <Activity size={18} /> Live ZTA Telemetry
+              </h3>
+            </div>
+            
+            <div className="ticker-container">
+              {activities.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <Activity size={32} style={{ opacity: 0.3, marginBottom: '10px' }} />
+                  <p>Awaiting network traffic...</p>
+                </div>
+              ) : (
+                activities.map((act, idx) => (
+                  <div key={act.id || idx} className={`ticker-item ${act.action === 'BLOCKED' || act.action === 'AUTH_LOCKED' ? 'blocked' : act.action === 'SANDBOXED' ? 'sandboxed' : 'verified'}`}>
+                    <div className="ticker-header">
+                      <span className={`ticker-action ${act.action === 'BLOCKED' || act.action === 'AUTH_LOCKED' ? 'blocked' : act.action === 'SANDBOXED' ? 'sandboxed' : 'verified'}`}>
+                        {act.action === 'AUTH_LOCKED' ? 'ACCOUNT LOCKED' : act.action}
+                      </span>
+                      <span className="ticker-time">{act.timestamp.split('T')[1].substring(0,8)}</span>
+                    </div>
+                    <div className="ticker-details">{act.details}</div>
+                    <div className="ticker-meta">
+                      <span>USER: {act.user}</span>
+                      <span>RISK: {act.score}</span>
+                      <span>IP: {act.location}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
-
-      {/* Active MFA Hex OTP Codes */}
-      <div className="card">
-        <div className="card-header">
-          <h3>🔐 Active MFA Codes</h3>
-          <span className="badge" style={{background: activeMfa.length > 0 ? 'var(--warning-light)' : 'var(--success-light)', color: activeMfa.length > 0 ? 'var(--warning)' : 'var(--success)'}}>
-            {activeMfa.length > 0 ? `${activeMfa.length} pending` : 'None active'}
-          </span>
-        </div>
-        <div className="card-body" style={{padding: 0}}>
-          {activeMfa.length === 0 ? (
-            <div className="empty-state" style={{padding:'32px'}}>
-              <div className="icon">✅</div>
-              <p>No active MFA challenges. Hex OTP codes will appear here when users trigger MFA.</p>
-            </div>
-          ) : (
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr><th>User</th><th>Action</th><th>Risk</th><th>Step</th><th>Hex OTP Code</th><th>Created</th></tr>
-                </thead>
-                <tbody>
-                  {activeMfa.map(m => (
-                    <tr key={m.id}>
-                      <td><strong className="mono">{m.user_id}</strong><br/><span style={{fontSize:'12px', color:'var(--text-muted)'}}>{m.role}</span></td>
-                      <td><span className="badge neutral">{m.action}</span></td>
-                      <td><span className="mono" style={{fontWeight:'700', color: m.risk_score >= 71 ? 'var(--danger)' : 'var(--warning)'}}>{m.risk_score}</span></td>
-                      <td><span className="badge info">Step {m.step}/4</span></td>
-                      <td>
-                        <span className="mono" style={{fontSize:'18px', fontWeight:'700', color:'var(--cyan)', letterSpacing:'2px', background:'var(--bg-surface)', padding:'6px 14px', border:'1px dashed var(--border-accent)'}}>
-                          {m.otp_code}
-                        </span>
-                      </td>
-                      <td style={{fontSize:'12px', color:'var(--text-muted)'}}>{m.created_at}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
   )
 }

@@ -22,11 +22,25 @@ export function BankLogo({ size = 48 }) {
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('token')
+  const overridesStr = localStorage.getItem('zta-overrides')
+  
+  let overrideHeaders = {}
+  if (overridesStr) {
+    try {
+      const parsed = JSON.parse(overridesStr)
+      if (parsed.amountLimit) overrideHeaders['x-zta-override-amount'] = String(parsed.amountLimit)
+      if (parsed.criticalRiskScore) overrideHeaders['x-zta-override-risk-block'] = String(parsed.criticalRiskScore)
+      if (parsed.sandboxRiskScore) overrideHeaders['x-zta-override-risk-sandbox'] = String(parsed.sandboxRiskScore)
+      if (parsed.temporalOverride != null) overrideHeaders['x-zta-override-time'] = String(parsed.temporalOverride)
+    } catch(e) {}
+  }
+
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...overrideHeaders,
       ...options.headers
     }
   })
