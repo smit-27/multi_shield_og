@@ -10,15 +10,16 @@ function getPolicies() {
   return map;
 }
 
-function analyzeRisk(activity) {
+function analyzeRisk(activity, overrides = {}) {
   const policies = getPolicies();
   const factors = [];
   let totalScore = 0;
 
   // Factor 1: Amount anomaly (0-75)
   if (activity.amount > 0) {
-    const maxAmount = policies.max_amount || 500000;
-    const highValue = policies.high_value || 100000;
+    // Override maxAmount if explicitly passed globally
+    const maxAmount = overrides.amountLimit != null ? overrides.amountLimit : (policies.max_amount || 500000);
+    const highValue = overrides.amountLimit != null ? Math.floor(overrides.amountLimit * 0.2) : (policies.high_value || 100000); // Scale highValue down proportionally if overriding
 
     if (activity.amount > maxAmount) {
       // Exceeding max limit guarantees at least MFA (65 points)

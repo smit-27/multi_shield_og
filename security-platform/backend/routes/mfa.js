@@ -5,6 +5,16 @@ const express = require('express');
 const router = express.Router();
 const { queryOne, runSql } = require('../db');
 
+// GET /api/mfa/active/codes — List all pending MFA challenges with OTP codes (admin use)
+// IMPORTANT: This must be BEFORE /:challengeId to avoid Express treating 'active' as a param
+router.get('/active/codes', (req, res) => {
+  const { queryAll } = require('../db');
+  const challenges = queryAll(
+    "SELECT id, user_id, username, role, action, amount, risk_score, step, otp_code, created_at FROM mfa_challenges WHERE status='pending' ORDER BY created_at DESC"
+  ) || [];
+  res.json({ challenges });
+});
+
 // GET /api/mfa/:challengeId — Get challenge status
 router.get('/:challengeId', (req, res) => {
   const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
@@ -50,8 +60,8 @@ router.post('/:challengeId/verify', (req, res) => {
       // Static mock: accept 'pass123' (matches demo accounts) or 'mfa_verify'
       verified = value === 'pass123' || value === 'mfa_verify';
       break;
-    case 2: // Face Recognition (static mock — always passes)
-      verified = true;
+    case 2: // Face Recognition — only pass if frontend explicitly confirmed a match
+      verified = (value === 'face_verified');
       break;
     case 3: // OTP
       verified = value === challenge.otp_code;
@@ -84,10 +94,10 @@ router.post('/:challengeId/verify', (req, res) => {
     runSql("UPDATE mfa_challenges SET step=? WHERE id=?", [nextStep, challenge.id]);
     
     const response = { success: true, status: 'pending', step: nextStep, message: 'Step verified' };
-    
-    // If next step is OTP, include the OTP code (mock — in production this would be sent via SMS)
+
+    // OTP is NOT sent to the MFA page — admin must read it from the admin portal
     if (nextStep === 3) {
-      response.otp_hint = `Your OTP is: ${challenge.otp_code}`;
+      response.message = 'Face verified. Enter the hexadecimal OTP code from your admin portal.';
     }
 
     return res.json(response);
@@ -137,11 +147,12 @@ router.post('/:challengeId/verify', (req, res) => {
   });
 });
 
-// GET /api/mfa/:challengeId/otp — Get OTP hint (mock)
+// GET /api/mfa/:challengeId/otp — Get OTP (for admin portal only)
 router.get('/:challengeId/otp', (req, res) => {
   const challenge = queryOne('SELECT otp_code FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
-  res.json({ otp: challenge.otp_code, message: `Your verification code is: ${challenge.otp_code}` });
+  res.json({ otp: challenge.otp_code });
 });
+
 
 module.exports = router;

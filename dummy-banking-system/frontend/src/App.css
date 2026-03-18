@@ -29,8 +29,8 @@
   --danger-light: #fce8ec;
   --info: #4f46e5;
   --info-light: #ece8ff;
-  --radius: 6px;
-  --radius-sm: 4px;
+  --radius: 0px;
+  --radius-sm: 0px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
   --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.06);
@@ -251,7 +251,7 @@ body {
   right: 16px;
   background: white;
   padding: 6px 14px;
-  border-radius: 20px;
+  border-radius: 0px;
   display: flex; align-items: center; gap: 6px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
@@ -270,7 +270,7 @@ body {
 .hero-card {
   background: linear-gradient(135deg, #f7faff 0%, #eef4fb 100%);
   border: 1px solid #c5d4e8;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 32px 64px;
   text-align: center;
   box-shadow: 0 4px 15px rgba(0,0,0,0.04);
@@ -425,7 +425,7 @@ tbody tr:last-child td { border-bottom: none; }
   z-index: 1000; animation: fadeIn 0.2s ease;
 }
 .modal {
-  background: white; border-radius: 12px;
+  background: white; border-radius: 0px;
   width: 92%; max-width: 500px; box-shadow: var(--shadow-lg);
   animation: slideUp 0.25s ease;
 }
@@ -459,7 +459,7 @@ tbody tr:last-child td { border-bottom: none; }
   background: linear-gradient(145deg, #0a1628 0%, #162844 50%, #0d2240 100%);
 }
 .login-card {
-  background: white; padding: 40px 36px; border-radius: 12px;
+  background: white; padding: 40px 36px; border-radius: 0px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.25); width: 100%; max-width: 400px;
 }
 .login-card .login-logo { text-align: center; margin-bottom: 24px; }
@@ -504,7 +504,7 @@ tbody tr:last-child td { border-bottom: none; }
 .freeze-overlay.denied { background: rgba(127, 29, 29, 0.9); }
 
 .freeze-content {
-  background: var(--bg-white); border-radius: 20px; padding: 40px 48px;
+  background: var(--bg-white); border-radius: 0px; padding: 40px 48px;
   max-width: 560px; width: 90%; text-align: center;
   box-shadow: 0 32px 64px rgba(0,0,0,0.3); animation: slideUp 0.5s ease;
 }
@@ -582,7 +582,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .freeze-overlay.denied { background: rgba(120, 20, 30, 0.9); }
 .freeze-content {
-  background: white; border-radius: 16px; padding: 36px 42px;
+  background: white; border-radius: 0px; padding: 36px 42px;
   max-width: 520px; width: 92%; text-align: center;
   box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: slideUp 0.4s ease;
 }
@@ -750,7 +750,7 @@ tbody tr:last-child td { border-bottom: none; }
 .login-v2-card {
   background: white;
   padding: 40px;
-  border-radius: 12px;
+  border-radius: 0px;
   box-shadow: 0 25px 50px rgba(0,0,0,0.3);
 }
 

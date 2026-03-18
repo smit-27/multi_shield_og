@@ -1,0 +1,35 @@
+[
+  {
+    "id": "db_admin_01",
+    "username": "amit.patel",
+    "password": "pass123",
+    "full_name": "Amit Patel",
+    "role": "Database Admin",
+    "department": "IT",
+    "email": "amit.patel@bank.com",
+    "last_login": "2026-03-15 08:04:51",
+    "status": "active"
+  },
+  {
+    "id": "loan_01",
+    "username": "priya.sharma",
+    "password": "pass123",
+    "full_name": "Priya Sharma",
+    "role": "Loan Officer",
+    "department": "Loans",
+    "email": "priya.sharma@bank.com",
+    "last_login": "2026-03-15 06:33:46",
+    "status": "active"
+  },
+  {
+    "id": "treasury_01",
+    "username": "rajesh.kumar",
+    "password": "pass123",
+    "full_name": "Rajesh Kumar",
+    "role": "Treasury Operator",
+    "department": "Treasury",
+    "email": "rajesh.kumar@bank.com",
+    "last_login": "2026-03-15 08:01:56",
+    "status": "active"
+  }
+]

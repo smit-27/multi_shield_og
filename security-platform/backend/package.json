@@ -11,6 +11,11 @@
     "axios": "^1.7.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "geoip-lite": "^1.4.10",
+    "http-proxy-middleware": "^3.0.5",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.0.1",
+    "socket.io": "^4.8.3",
     "sql.js": "^1.10.0",
     "uuid": "^9.0.0"
   }
