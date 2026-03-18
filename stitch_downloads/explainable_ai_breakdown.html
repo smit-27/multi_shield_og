@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MultiShield - Forensic Audit &amp; Predictive Isolation</title>
+<!-- Tailwind CSS v3 CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="theme-variables">
+    :root {
+      --bg-primary: #0b0510;
+      --bg-secondary: #150f28;
+      --bg-card: #1c1533;
+      --bg-surface: #1e1738;
+      --border: #2d2548;
+      --border-accent: #3d2d6b;
+      --text-primary: #eae6f5;
+      --text-secondary: #a09bb8;
+      --text-muted: #635d7a;
+      --accent: #7c5cfc;
+      --cyan: #22d3ee;
+      --amber: #f59e0b;
+      --danger: #f43f5e;
+      --success: #10b981;
+      --font: 'Inter', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+  </style>
+<style data-purpose="custom-layouts">
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font);
+      overflow-x: hidden;
+    }
+
+    /* Cyber Grid Background */
+    .cyber-grid {
+      background-image: 
+        linear-gradient(rgba(124, 92, 252, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 92, 252, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .obsidian-card {
+      background: rgba(28, 21, 51, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .obsidian-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.6;
+    }
+
+    .neon-text-cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+    .neon-text-amber { color: var(--amber); text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+    .neon-text-danger { color: var(--danger); text-shadow: 0 0 10px rgba(244, 63, 94, 0.5); }
+    .neon-text-accent { color: var(--accent); text-shadow: 0 0 10px rgba(124, 92, 252, 0.5); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 10px; }
+  </style>
+<style data-purpose="topology-animations">
+    @keyframes packetFlowVerified {
+      0% { left: 10%; top: 50%; opacity: 0; transform: scale(0.5); }
+      10% { opacity: 1; transform: scale(1); }
+      90% { opacity: 1; }
+      100% { left: 85%; top: 25%; opacity: 0; transform: scale(0.5); }
+    }
+
+    @keyframes packetFlowSandboxed {
+      0% { left: 10%; top: 50%; opacity: 0; }
+      10% { opacity: 1; }
+      50% { left: 45%; top: 50%; }
+      100% { left: 85%; top: 75%; opacity: 0; }
+    }
+
+    @keyframes packetFlowBlocked {
+      0% { left: 10%; top: 50%; opacity: 0; }
+      10% { opacity: 1; }
+      45% { left: 48%; top: 50%; opacity: 1; transform: scale(1); }
+      50% { left: 50%; top: 50%; opacity: 0; transform: scale(2); }
+      100% { left: 50%; top: 50%; opacity: 0; }
+    }
+
+    .packet {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      z-index: 10;
+    }
+
+    .packet-verified { background: var(--success); box-shadow: 0 0 10px var(--success); animation: packetFlowVerified 4s infinite linear; }
+    .packet-sandboxed { background: var(--amber); box-shadow: 0 0 10px var(--amber); animation: packetFlowSandboxed 5s infinite linear; }
+    .packet-blocked { background: var(--danger); box-shadow: 0 0 10px var(--danger); animation: packetFlowBlocked 3s infinite ease-out; }
+  </style>
+</head>
+<body class="cyber-grid min-h-screen">
+<!-- BEGIN: MainLayout -->
+<div class="flex min-h-screen">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-[#0b0510] border-r border-[#2d2548] flex flex-col fixed h-full z-50">
+<div class="p-8 border-b border-[#2d2548]">
+<h1 class="flex items-center gap-3 font-bold text-lg tracking-tight">
+<span class="w-8 h-8 bg-gradient-to-br from-[#7c5cfc] to-[#a855f7] rounded-lg flex items-center justify-center text-white text-sm">MS</span>
+        MultiShield
+      </h1>
+<p class="text-[10px] text-[#635d7a] uppercase tracking-[2px] mt-2 font-semibold">ZTA Forensic Command</p>
+</div>
+<nav class="flex-1 p-6 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#7c5cfc] bg-[#7c5cfc1a] font-semibold border-l-2 border-[#7c5cfc]" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Live SOC
+      </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#a09bb8] hover:bg-[#1c1533] transition-all" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Forensics
+      </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#a09bb8] hover:bg-[#1c1533] transition-all" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Policy Guard
+      </a>
+</nav>
+<div class="p-8 border-t border-[#2d2548]">
+<div class="flex items-center gap-2 text-[#10b981] text-xs font-bold">
+<div class="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
+        SYSTEM OPTIMAL
+      </div>
+<div class="mt-2 text-[10px] text-[#635d7a] font-mono">NODE: US-EAST-01</div>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: MainContent -->
+<main class="ml-64 flex-1 p-10 relative">
+<!-- BEGIN: PageHeader -->
+<header class="flex justify-between items-end mb-10">
+<div>
+<h2 class="text-4xl font-bold tracking-tight text-white">Forensic Dashboard</h2>
+<p class="text-[#a09bb8] text-sm mt-2">Real-time aggregate risk analysis and traffic orchestration.</p>
+</div>
+<div class="flex gap-4">
+<div class="text-right">
+<p class="text-[10px] text-[#635d7a] uppercase tracking-widest font-bold">Terminal Time</p>
+<p class="text-xl font-mono font-bold text-[#7c5cfc]" id="terminal-clock">14:22:05:88</p>
+</div>
+</div>
+</header>
+<!-- END: PageHeader -->
+<!-- BEGIN: KPI Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+<div class="obsidian-card p-8 rounded-2xl border-l-4 border-l-[#f43f5e]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Active Threats</p>
+<span class="px-2 py-0.5 rounded bg-[#f43f5e1a] text-[#f43f5e] text-[10px] font-mono font-bold">+12.4%</span>
+</div>
+<h3 class="text-5xl font-mono font-bold mt-3 neon-text-danger">42</h3>
+<p class="text-xs text-[#635d7a] mt-3">Critical escalation required</p>
+</div>
+<div class="obsidian-card p-8 rounded-2xl border-l-4 border-l-[#22d3ee]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Gateway Load</p>
+<span class="px-2 py-0.5 rounded bg-[#22d3ee1a] text-[#22d3ee] text-[10px] font-mono font-bold">STABLE</span>
+</div>
+<h3 class="text-5xl font-mono font-bold mt-3 neon-text-cyan">8.4<span class="text-lg">Gbps</span></h3>
+<p class="text-xs text-[#635d7a] mt-3">92% throughput efficiency</p>
+</div>
+<div class="obsidian-card p-8 rounded-2xl border-l-4 border-l-[#f59e0b]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Global Risk Index</p>
+<div class="flex gap-1">
+<div class="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
+<div class="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
+<div class="w-1 h-3 bg-[#635d7a] rounded-full"></div>
+</div>
+</div>
+<h3 class="text-5xl font-mono font-bold mt-3 neon-text-amber">34.2</h3>
+<p class="text-xs text-[#635d7a] mt-3">Elevated: Temporal Drift detected</p>
+</div>
+</section>
+<!-- END: KPI Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
+<!-- BEGIN: Network Topology Map -->
+<section class="lg:col-span-3 space-y-10">
+<div class="obsidian-card rounded-2xl h-[550px] overflow-hidden flex flex-col">
+<div class="p-6 border-b border-[#2d2548] flex justify-between items-center bg-[#0a0515]">
+<h4 class="text-xs font-bold uppercase tracking-[2px] text-[#a09bb8] flex items-center gap-3">
+<span class="w-2 h-2 bg-[#7c5cfc] rounded-full shadow-[0_0_8px_var(--accent)]"></span>
+              Real-Time Traffic Orchestration
+            </h4>
+<div class="flex gap-6 text-[10px] font-mono">
+<div class="flex items-center gap-2"><span class="w-2 h-2 bg-[#10b981] rounded-full shadow-[0_0_5px_var(--success)]"></span> VERIFIED</div>
+<div class="flex items-center gap-2"><span class="w-2 h-2 bg-[#f59e0b] rounded-full shadow-[0_0_5px_var(--amber)]"></span> SANDBOXED</div>
+<div class="flex items-center gap-2"><span class="w-2 h-2 bg-[#f43f5e] rounded-full shadow-[0_0_5px_var(--danger)]"></span> BLOCKED</div>
+</div>
+</div>
+<div class="flex-1 relative bg-[#05050a] overflow-hidden" id="topology-map">
+<!-- Visual Nodes -->
+<div class="absolute left-10 top-1/2 -translate-y-1/2 z-20 text-center">
+<div class="w-16 h-16 bg-[#1c1533] border-2 border-[#7c5cfc] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(124,92,252,0.3)]">
+<svg class="w-8 h-8 text-[#7c5cfc]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+</div>
+<p class="mt-2 text-[10px] font-mono text-[#a09bb8]">MAIN_GW_01</p>
+</div>
+<div class="absolute left-1/2 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-[#7c5cfc33] to-transparent z-10">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 bg-[#05050a] border border-[#2d2548] rounded text-[9px] font-bold tracking-tighter text-[#635d7a]">
+                ZTA_LAYER_V2
+              </div>
+</div>
+<div class="absolute right-10 top-1/4 -translate-y-1/2 z-20 text-center">
+<div class="w-16 h-16 bg-[#0a1510] border-2 border-[#10b981] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+<svg class="w-8 h-8 text-[#10b981]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+</div>
+<p class="mt-2 text-[10px] font-mono text-[#10b981]">PROD_CLUSTER</p>
+</div>
+<div class="absolute right-10 bottom-1/4 translate-y-1/2 z-20 text-center">
+<div class="w-16 h-16 bg-[#151005] border-2 border-[#f59e0b] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+<svg class="w-8 h-8 text-[#f59e0b]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.628.288a2 2 0 01-1.408 0l-.628-.288a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h11a2 2 0 002-2v-2.572zM12 11V3m0 0L9 6m3-3l3 3" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+</div>
+<p class="mt-2 text-[10px] font-mono text-[#f59e0b]">ISOLATION_ZONE</p>
+</div>
+<div id="packet-container"></div>
+</div>
+</div>
+<!-- Activity Ticker -->
+<div class="obsidian-card rounded-2xl overflow-hidden">
+<div class="px-8 py-5 border-b border-[#2d2548] bg-[#1c1533]">
+<h3 class="text-[11px] font-bold text-[#a09bb8] uppercase tracking-widest">Live Forensics Log</h3>
+</div>
+<div class="p-0 max-h-[250px] overflow-y-auto font-mono text-[11px]">
+<table class="w-full text-left">
+<thead class="bg-[#150f28] text-[#635d7a]">
+<tr>
+<th class="px-8 py-4 font-medium uppercase tracking-wider">Timestamp</th>
+<th class="px-8 py-4 font-medium uppercase tracking-wider">Source</th>
+<th class="px-8 py-4 font-medium uppercase tracking-wider">Action</th>
+<th class="px-8 py-4 font-medium uppercase tracking-wider">Score</th>
+<th class="px-8 py-4 font-medium uppercase tracking-wider">Signature</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#2d2548] text-[#a09bb8]">
+<tr class="hover:bg-[#7c5cfc0d] transition-colors">
+<td class="px-8 py-4 text-[#635d7a]">14:21:44.22</td>
+<td class="px-8 py-4">192.168.1.45</td>
+<td class="px-8 py-4"><span class="text-[#10b981] font-bold">ALLOW</span></td>
+<td class="px-8 py-4">0.02</td>
+<td class="px-8 py-4 text-[10px]">SHA-256: 4A7B...</td>
+</tr>
+<tr class="hover:bg-[#7c5cfc0d] transition-colors">
+<td class="px-8 py-4 text-[#635d7a]">14:21:42.09</td>
+<td class="px-8 py-4 text-[#eae6f5]">84.12.112.5</td>
+<td class="px-8 py-4"><span class="text-[#f59e0b] font-bold">SANDBOX</span></td>
+<td class="px-8 py-4 font-bold text-[#f59e0b]">0.68</td>
+<td class="px-8 py-4 text-[10px]">AE-TEMP-DRIFT</td>
+</tr>
+<tr class="hover:bg-[#7c5cfc0d] transition-colors bg-[#f43f5e0a]">
+<td class="px-8 py-4 text-[#635d7a]">14:21:38.11</td>
+<td class="px-8 py-4 text-[#eae6f5]">203.0.113.1</td>
+<td class="px-8 py-4"><span class="text-[#f43f5e] font-bold">BLOCK</span></td>
+<td class="px-8 py-4 font-bold text-[#f43f5e]">0.94</td>
+<td class="px-8 py-4 text-[10px]">SQL-INJ-VECTOR</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- BEGIN: Explainable AI Sidebar (Restyled) -->
+<aside class="space-y-8 lg:col-span-1">
+<div class="obsidian-card p-8 rounded-2xl border-t-2 border-[#7c5cfc]">
+<h4 class="text-sm font-bold text-white mb-8 flex items-center gap-2">
+<svg class="w-4 h-4 text-[#7c5cfc]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            Explainable AI (XAI)
+          </h4>
+<div class="flex flex-col items-center mb-10">
+<div class="relative flex items-center justify-center">
+<!-- SVG Gauge from SCREEN_13 Aesthetic -->
+<svg class="w-36 h-36 transform -rotate-90">
+<circle cx="72" cy="72" fill="transparent" r="66" stroke="#2d2548" stroke-width="10"></circle>
+<circle cx="72" cy="72" fill="transparent" r="66" stroke="url(#riskGradient)" stroke-dasharray="414.69" stroke-dashoffset="136.8" stroke-linecap="round" stroke-width="10"></circle>
+<defs>
+<lineargradient id="riskGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#22d3ee"></stop>
+<stop offset="50%" stop-color="#7c5cfc"></stop>
+<stop offset="100%" stop-color="#f43f5e"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-4xl font-mono font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">68</span>
+<span class="text-[9px] text-[#635d7a] font-bold uppercase tracking-[2px]">Risk Score</span>
+</div>
+</div>
+<p class="mt-6 text-xs text-[#a09bb8] text-center px-4 leading-relaxed">
+              Score driven primarily by <span class="text-[#f59e0b] font-bold underline decoration-[#f59e0b]/30">Temporal Anomaly</span> and <span class="text-[#22d3ee] font-bold underline decoration-[#22d3ee]/30">Geographic Drift</span>.
+            </p>
+</div>
+<div class="space-y-6">
+<!-- Factor 1: Temporal Anomaly (Amber/Danger) -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Temporal Anomaly</span>
+<span class="text-[#f59e0b] font-mono">High (0.82)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#f59e0b] w-[82%] shadow-[0_0_12px_rgba(245,158,11,0.6)]"></div>
+</div>
+</div>
+<!-- Factor 2: Geographic Drift (Cyan) -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Geographic Drift</span>
+<span class="text-[#22d3ee] font-mono">Med (0.45)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#22d3ee] w-[45%] shadow-[0_0_12px_rgba(34,211,238,0.6)]"></div>
+</div>
+</div>
+<!-- Factor 3: Payload Signature (Success/Clean) -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Payload Signature</span>
+<span class="text-[#10b981] font-mono">Clean (0.12)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#10b981] w-[12%] shadow-[0_0_12px_rgba(16,185,129,0.6)]"></div>
+</div>
+</div>
+<!-- Factor 4: Behavioral Heuristic (Accent/Purple) -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Behavioral Heuristic</span>
+<span class="text-[#7c5cfc] font-mono">Base (0.28)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#7c5cfc] w-[28%] shadow-[0_0_12px_rgba(124,92,252,0.6)]"></div>
+</div>
+</div>
+</div>
+<button class="w-full mt-10 py-4 rounded-xl bg-[#7c5cfc1a] border border-[#7c5cfc33] text-[#7c5cfc] text-xs font-bold uppercase tracking-widest hover:bg-[#7c5cfc33] hover:shadow-[0_0_15px_rgba(124,92,252,0.2)] transition-all">
+            Full Breakdown →
+          </button>
+</div>
+<!-- Quick Actions (Restyled Obsidian) -->
+<div class="obsidian-card p-8 rounded-2xl bg-[#0a0515]/80">
+<h4 class="text-[10px] font-bold text-[#635d7a] uppercase tracking-widest mb-6 border-b border-[#2d2548] pb-3">Command Center</h4>
+<div class="grid grid-cols-2 gap-4">
+<button class="p-4 bg-[#1c1533] border border-[#2d2548] rounded-xl text-[11px] font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white hover:bg-[#2d2548] transition-all">Flush DNS</button>
+<button class="p-4 bg-[#1c1533] border border-[#2d2548] rounded-xl text-[11px] font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white hover:bg-[#2d2548] transition-all">IP Ban List</button>
+<button class="p-4 bg-[#1c1533] border border-[#2d2548] rounded-xl text-[11px] font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white hover:bg-[#2d2548] transition-all">Isolation</button>
+<button class="p-4 bg-[#f43f5e1a] border border-[#f43f5e33] rounded-xl text-[11px] font-bold text-[#f43f5e] hover:bg-[#f43f5e33] hover:shadow-[0_0_15px_rgba(244,63,94,0.2)] transition-all">HALT</button>
+</div>
+</div>
+</aside>
+<!-- END: Explainable AI Sidebar -->
+</div>
+</main>
+<!-- END: MainContent -->
+</div>
+<!-- END: MainLayout -->
+<!-- BEGIN: Logic & Interactivity -->
+<script data-purpose="clock-logic">
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+    const clockEl = document.getElementById('terminal-clock');
+    if (clockEl) clockEl.innerText = `${h}:${m}:${s}:${ms}`;
+  }
+  setInterval(updateClock, 100);
+</script>
+<script data-purpose="packet-spawner">
+  const container = document.getElementById('packet-container');
+  const types = ['verified', 'sandboxed', 'blocked'];
+
+  function spawnPacket() {
+    if (!container) return;
+    const type = types[Math.floor(Math.random() * types.length)];
+    const packet = document.createElement('div');
+    packet.className = `packet packet-${type}`;
+    packet.style.animationDelay = `${Math.random() * 2}s`;
+    container.appendChild(packet);
+    setTimeout(() => { packet.remove(); }, 5000);
+  }
+  setInterval(spawnPacket, 800);
+</script>
+<!-- END: Logic & Interactivity -->
+</body></html>
