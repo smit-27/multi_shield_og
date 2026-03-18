@@ -162,7 +162,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
             <div className="freeze-details">
               <div className="freeze-detail-row">
                 <span>Reason</span>
-                <span>{data?.reason}</span>
+                <span>{data?.message || data?.reason}</span>
               </div>
             </div>
 
@@ -191,7 +191,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
             <div className="freeze-details">
               <div className="freeze-detail-row">
                 <span>Reason</span>
-                <span>{data?.reason}</span>
+                <span>{data?.message || data?.reason}</span>
               </div>
             </div>
 

@@ -24,12 +24,14 @@ const STEP_UP_STATUS = {
  */
 function createStepUpChallenge(userId, username, role, action, amount, riskScore) {
   const challengeId = `STEPUP-${crypto.randomBytes(8).toString('hex')}`;
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
   runSql(
     `INSERT INTO zta_step_up_challenges 
      (id, user_id, username, role, action, amount, risk_score, status, current_step, attempts, created_at, expires_at) 
-     VALUES (?,?,?,?,?,?,?,'pending',0,0,datetime('now'),datetime('now','+10 minutes'))`,
-    [challengeId, userId, username, role, action, amount || 0, riskScore]
+     VALUES (?,?,?,?,?,?,?,'pending',0,0,?,?)`,
+    [challengeId, userId, username, role, action, amount || 0, riskScore, now, expires]
   );
 
   return challengeId;
@@ -177,46 +179,75 @@ function requireStepUp(req, res, next) {
   // Only enforce step-up for write operations on sensitive endpoints
   if (req.method === 'GET') return next();
 
-  const riskScore = req.ztaRiskResult?.score || 0;
-  const stepUpThreshold = 60;
+  const riskResult = req.ztaRiskResult;
+  const decision = riskResult?.decision || 'ALLOW';
+  const riskScore = riskResult?.score || 0;
 
-  if (riskScore < stepUpThreshold) return next();
+  if (decision === 'ALLOW') return next();
 
-  // Check if user already completed step-up recently (within last 10 minutes)
   const user = req.ztaUser;
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
-  const session = queryOne(
-    "SELECT * FROM zta_sessions WHERE user_id = ? AND step_up_completed = 1 AND last_verified > datetime('now', '-10 minutes')",
-    [user.user_id]
-  );
-
-  if (session) {
-    // Step-up already completed — allow through
-    return next();
+  // Handle JUSTIFY
+  if (decision === 'JUSTIFY') {
+    // If it's already justified (X-Device header or similar), allow through
+    if (req.headers['x-device'] === 'internal workstation' || req.body?.details?.startsWith('Justified:')) {
+      return next();
+    }
+    return res.status(202).json({
+      justify_required: true,
+      risk_score: riskScore,
+      message: riskResult.reason || 'Justification required for this action.'
+    });
   }
 
-  // Step-up required — create challenge and return 202
-  const challengeId = createStepUpChallenge(
-    user.user_id,
-    user.username,
-    user.role,
-    req.body?.action || req.path,
-    req.body?.amount || 0,
-    riskScore
-  );
+  // Handle REQUIRE_MFA
+  if (decision === 'REQUIRE_MFA') {
+    // Check if user already completed step-up recently (within last 10 minutes)
+    const session = queryOne(
+      "SELECT * FROM zta_sessions WHERE user_id = ? AND step_up_completed = 1 AND last_verified > datetime('now', '-10 minutes')",
+      [user.user_id]
+    );
 
-  return res.status(202).json({
-    step_up_required: true,
-    challenge_id: challengeId,
-    risk_score: riskScore,
-    steps: [
-      { step: 0, label: 'User ID', description: 'Verify your employee ID' },
-      { step: 1, label: 'Password', description: 'Enter your password' },
-      { step: 2, label: 'Face Authentication', description: 'Verify your identity with face scan' }
-    ],
-    message: `Risk score ${riskScore} requires step-up authentication. Complete all 3 verification steps to proceed.`
-  });
+    if (session) return next();
+
+    // Step-up required — create challenge and return 202 with legacy-compatible keys
+    const challengeId = createStepUpChallenge(
+      user.user_id,
+      user.username,
+      user.role,
+      req.body?.action || req.path,
+      req.body?.amount || 0,
+      riskScore
+    );
+
+    return res.status(202).json({
+      mfa_required: true, // Legacy compatible key
+      step_up_required: true, // ZTA key
+      challenge_id: challengeId,
+      risk_score: riskScore,
+      message: riskResult.reason || `Risk score ${riskScore} requires multi-factor authentication.`
+    });
+  }
+
+  // Handle ADMIN_APPROVAL
+  if (decision === 'ADMIN_APPROVAL') {
+    // Create an approval request in the legacy table so the existing admin dashboard sees it
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const approvalResult = runSql(
+      "INSERT INTO approval_requests (user_id, username, role, action, amount, risk_score, status, expires_at, user_message) VALUES (?,?,?,?,?,?,'pending',?,?)",
+      [user.user_id, user.username, user.role, req.body?.action || req.path, req.body?.amount || 0, riskScore, expiresAt, 'ZTA Escalation: High risk activity detected']
+    );
+
+    return res.status(202).json({
+      admin_approval_required: true,
+      request_id: approvalResult.lastInsertRowid,
+      risk_score: riskScore,
+      message: riskResult.reason || `Critial risk score ${riskScore} requires admin approval.`
+    });
+  }
+
+  next();
 }
 
 module.exports = {

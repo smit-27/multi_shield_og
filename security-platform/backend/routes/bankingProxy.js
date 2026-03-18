@@ -103,10 +103,14 @@ function extractAction(req) {
  */
 function injectBankingAuth(req, res, next) {
   const sessionId = req.ztaUser?.session_id;
+  console.log(`[ZTA Proxy] injecting auth for session_id: ${sessionId}`);
   if (sessionId) {
     const tokenRow = queryOne("SELECT banking_token FROM banking_tokens WHERE session_id = ?", [sessionId]);
     if (tokenRow?.banking_token) {
+      console.log(`[ZTA Proxy] Found banking token: ${tokenRow.banking_token.substring(0, 15)}...`);
       req.headers['authorization'] = `Bearer ${tokenRow.banking_token}`;
+    } else {
+      console.warn(`[ZTA Proxy] NO banking token found for session: ${sessionId}`);
     }
   }
   next();
@@ -124,6 +128,8 @@ router.use(injectBankingAuth);
 router.get('/*', async (req, res) => {
   try {
     const bankingPath = `/api${req.path}`;
+    const BANKING_URL = require('../middleware/ztaProxy').BANKING_BACKEND_URL;
+    console.log(`[ZTA Proxy] Forwarding GET to: ${BANKING_URL}${bankingPath}`);
     const result = await forwardToBanking(bankingPath, 'GET', null, {
       'Authorization': req.headers['authorization'] || '',
       'X-ZTA-Verified': 'true',

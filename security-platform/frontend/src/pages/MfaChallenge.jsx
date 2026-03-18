@@ -240,6 +240,7 @@ export default function MfaChallenge() {
       if (res.status === 'completed') {
         setCompleted(true)
         setChallenge(prev => ({ ...prev, step: 4, status: 'completed' }))
+        setTimeout(() => window.close(), 1500)
       } else {
         setChallenge(prev => ({ ...prev, step: res.step }))
         setValue('')

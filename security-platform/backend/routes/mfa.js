@@ -17,7 +17,29 @@ router.get('/active/codes', (req, res) => {
 
 // GET /api/mfa/:challengeId — Get challenge status
 router.get('/:challengeId', (req, res) => {
-  const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  let challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  
+  // Fallback to ZTA step-up challenges
+  if (!challenge) {
+    challenge = queryOne('SELECT * FROM zta_step_up_challenges WHERE id = ?', [req.params.challengeId]);
+    if (challenge) {
+      // Map ZTA fields to legacy fields for frontend compatibility
+      return res.json({
+        id: challenge.id,
+        user_id: challenge.user_id,
+        username: challenge.username,
+        role: challenge.role,
+        action: challenge.action,
+        amount: challenge.amount,
+        status: challenge.status,
+        step: challenge.current_step, // ZTA uses current_step
+        risk_score: challenge.risk_score,
+        created_at: challenge.created_at,
+        completed_at: challenge.completed_at
+      });
+    }
+  }
+
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
 
   res.json({
@@ -38,7 +60,14 @@ router.get('/:challengeId', (req, res) => {
 
 // POST /api/mfa/:challengeId/verify — Verify current MFA step
 router.post('/:challengeId/verify', (req, res) => {
-  const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  let challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  let isZta = false;
+
+  if (!challenge) {
+    challenge = queryOne('SELECT * FROM zta_step_up_challenges WHERE id = ?', [req.params.challengeId]);
+    isZta = !!challenge;
+  }
+
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
 
   if (challenge.status === 'completed') {
@@ -49,6 +78,13 @@ router.post('/:challengeId/verify', (req, res) => {
   }
 
   const { value } = req.body;
+  
+  if (isZta) {
+    const { verifyStepUpStep } = require('../middleware/stepUpAuth');
+    const result = verifyStepUpStep(challenge.id, challenge.current_step, value);
+    return res.status(result.success ? 200 : 401).json(result);
+  }
+
   const currentStep = challenge.step;
   let verified = false;
 

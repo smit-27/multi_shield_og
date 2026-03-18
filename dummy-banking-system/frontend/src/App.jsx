@@ -6,7 +6,7 @@ import Treasury from './pages/Treasury'
 import Loans from './pages/Loans'
 import Customers from './pages/Customers'
 
-const API = 'http://localhost:3001'
+const API = 'http://127.0.0.1:3002'
 
 export const AuthContext = createContext(null)
 
@@ -22,7 +22,10 @@ export function BankLogo({ size = 48 }) {
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('token')
-  const res = await fetch(`${API}${path}`, {
+  const cleanPath = path.startsWith('/api') ? path.substring(4) : path
+  const targetPath = path.startsWith('/api/zta') ? path : `/api/banking${cleanPath}`
+  
+  const res = await fetch(`${API}${targetPath}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -128,7 +131,7 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
-      apiFetch('/api/auth/me')
+      apiFetch('/api/zta/session')
         .then(d => setUser(d.user))
         .catch(() => { localStorage.removeItem('token'); setUser(null) })
         .finally(() => setLoading(false))
@@ -138,17 +141,17 @@ export default function App() {
   }, [])
 
   const login = async (username, password) => {
-    const data = await apiFetch('/api/auth/login', {
+    const data = await apiFetch('/api/zta/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     })
-    localStorage.setItem('token', data.token)
+    localStorage.setItem('token', data.access_token)
     setUser(data.user)
     return data
   }
 
   const logout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    apiFetch('/api/zta/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('token')
     setUser(null)
   }
