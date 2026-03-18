@@ -44,7 +44,7 @@ services:
     container_name: multishield-security
     environment:
       PORT: 3002
-      NODE_ENV: production
+      NODE_ENV: development
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: multishield
       KEYCLOAK_CLIENT_ID: zta-gateway

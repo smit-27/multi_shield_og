@@ -14,7 +14,7 @@ const router = express.Router();
 const { locationKillSwitch, timeConstraintMiddleware } = require('../middleware/contextVerifier');
 const { requireStepUp } = require('../middleware/stepUpAuth');
 const { forwardToBanking } = require('../middleware/ztaProxy');
-const { analyzeRisk } = require('../engine/riskEngine');
+const { analyzeRisk, analyzeRiskWithML } = require('../engine/riskEngine');
 const { makeDecision } = require('../engine/policyEngine');
 const { queryOne, runSql } = require('../db');
 const { logToDashboard } = require('../middleware/dashboardLogger');
@@ -30,7 +30,7 @@ const ZTA_DEFAULTS = {
  * Risk analysis middleware — runs the existing risk engine
  * and attaches result to req.ztaRiskResult
  */
-function analyzeRequestRisk(req, res, next) {
+async function analyzeRequestRisk(req, res, next) {
   const user = req.ztaUser;
   const ctx = req.ztaContext || {};
   const now = new Date();
@@ -63,7 +63,14 @@ function analyzeRequestRisk(req, res, next) {
         : ZTA_DEFAULTS.sandboxRiskScore
   };
 
-  const riskResult = analyzeRisk(activity, activePolicies);
+  // Use ML-enhanced risk analysis with fallback to rule-only
+  let riskResult;
+  try {
+    riskResult = await analyzeRiskWithML(activity, activePolicies);
+  } catch (err) {
+    console.warn('[Risk Engine] ML analysis failed, falling back to rule-based:', err.message);
+    riskResult = analyzeRisk(activity, activePolicies);
+  }
 
   // Add context risk contribution
   riskResult.score = Math.min(100, riskResult.score + (ctx.contextRisk || 0));
