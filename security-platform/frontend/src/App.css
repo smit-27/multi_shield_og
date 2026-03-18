@@ -2492,5 +2492,117 @@ tbody tr:last-child td { border-bottom: none; }
 .log-blocked  { background: rgba(244,63,94,0.05);    border-left-color: #f43f5e; }
 
 .log-time   { color: rgba(255,255,255,0.35); }
-.log-score  { color: rgba(255,255,255,0.5); }
 .log-user, .log-seg { color: rgba(255,255,255,0.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ADMIN CENTER DASHBOARD (Tailwind/Stitch Integration)
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes dash { to { stroke-dashoffset: 0; } }
+.threat-vector {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: dash 3s linear infinite;
+}
+
+.map-ping {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 10px #f43f5e;
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% { transform: scale(3); opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   XAI DASHBOARD (Tailwind/Stitch Integration)
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes packetFlowVerified {
+  0% { left: 10%; top: 50%; opacity: 0; transform: scale(0.5); }
+  10% { opacity: 1; transform: scale(1); }
+  90% { opacity: 1; }
+  100% { left: 85%; top: 25%; opacity: 0; transform: scale(0.5); }
+}
+
+@keyframes packetFlowSandboxed {
+  0% { left: 10%; top: 50%; opacity: 0; }
+  10% { opacity: 1; }
+  50% { left: 45%; top: 50%; }
+  100% { left: 85%; top: 75%; opacity: 0; }
+}
+
+@keyframes packetFlowBlocked {
+  0% { left: 10%; top: 50%; opacity: 0; }
+  10% { opacity: 1; }
+  45% { left: 48%; top: 50%; opacity: 1; transform: scale(1); }
+  50% { left: 50%; top: 50%; opacity: 0; transform: scale(2); }
+  100% { left: 50%; top: 50%; opacity: 0; }
+}
+
+.packet {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.packet-verified { background: #10b981; box-shadow: 0 0 10px #10b981; animation: packetFlowVerified 4s infinite linear; }
+.packet-sandboxed { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; animation: packetFlowSandboxed 5s infinite linear; }
+.packet-blocked { background: #f43f5e; box-shadow: 0 0 10px #f43f5e; animation: packetFlowBlocked 3s infinite ease-out; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FORENSIC APPROVAL QUEUE (Tailwind/Stitch Integration)
+   ══════════════════════════════════════════════════════════════════════════ */
+.obsidian-glass {
+  background: rgba(23, 17, 42, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid #3d2d6b;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.active-card-glow {
+  box-shadow: 0 0 20px rgba(124, 92, 252, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-color: #7c5cfc;
+}
+
+.scanline {
+  width: 100%;
+  height: 2px;
+  background: #7c5cfc;
+  opacity: 0.1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: scan 4s linear infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  0% { top: 0%; }
+  100% { top: 100%; }
+}
+
+.trust-gauge {
+  stroke-dasharray: 251.2;
+  transition: stroke-dashoffset 1s ease-out;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 11px;
+  transition: all 0.2s;
+}

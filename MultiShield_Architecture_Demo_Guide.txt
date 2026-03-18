@@ -1,0 +1,105 @@
+================================================================================
+MULTISHIELD ZERO TRUST ARCHITECTURE (ZTA) - DEMO & ARCHITECTURE GUIDE
+================================================================================
+
+This document outlines everything the MultiShield ZTA system does under the hood, how the components interact, how to test/demo the application to a judge, and what is specifically "mocked" vs "natively integrated".
+
+--------------------------------------------------------------------------------
+1. SYSTEM ARCHITECTURE & COMPONENTS
+--------------------------------------------------------------------------------
+
+The MultiShield platform is split into a Tri-Node Architecture:
+
+A. Dummy Banking System (The "Vulnerable" Target APP)
+- Frontend: React App (http://localhost:5173) - User portal for logging in, transferring funds, and taking loans.
+- Backend: Express/SQLite (http://localhost:3001) - Handles core banking logic on an unencrypted local network. It blindly trusts incoming API requests.
+
+B. MultiShield Zero Trust Gateway (The Core Security Engine)
+- Backend: Express/SQLite (http://localhost:3002) - This sits entirely BETWEEN the User App and the Banking Backend.
+- Every API call from the User Portal is re-routed through this server (Proxy Pattern).
+- It executes the `analyzeRisk()` logic evaluating User Behavior, Time Context, Device Metadata, and Financial Thresholds.
+
+C. MultiShield SOC Dashboard (The Admin Command Center)
+- Frontend: React App + Tailwind CSS (http://localhost:5174)
+- A highly sophisticated, dark-mode cybersecurity interface utilizing real-time WebSockets (Socket.io) to listen to the ZTA Gateway.
+- If the ZTA Gateway "BLOCKS" or "SANDBOXES" a request, it instantly surfaces mathematically visualized feedback to these dashboards.
+
+--------------------------------------------------------------------------------
+2. HOW THE SECURITY ENGINE ACTUALLY WORKS (Execution Flow)
+--------------------------------------------------------------------------------
+
+1. User Login: 
+   The User logs into the banking app. The login goes to ZTA Gateway (`/api/zta/login`). The Gateway verifies credentials with the Banking API, signs its own heavy-weight JWT token (with ZTA metadata), and returns it to the user.
+
+2. Malicious/Anomalous Action:
+   The user attempts a ₹600,000 transfer at 3:00 AM. 
+
+3. The Proxy Intercept:
+   The user's app sends the request to the ZTA Gateway (`/api/banking/transfer`), NOT the banking backend.
+
+4. The Risk Calculation Engine (`analyzeRisk`):
+   - The engine checks "Temporal Policies": Is 3:00 AM outside of normal working hours (8:00 AM - 6:00 PM)? (Penalty: +30 Risk Score)
+   - The engine checks "Threshold Policies": Is ₹600,000 greater than the ₹500,000 single transaction limit? (Penalty: +40 Risk Score)
+   - Total Risk Score = 70.
+
+5. Dynamic Policy Enforcement:
+   - Score < 40: Action ALLOWED. The Gateway transparently passes the request to the Banking Backend (Port 3001) and returns a success to the user.
+   - Score 40-89: Action SANDBOXED / MFA REQUIREMENT / HUMAN APPROVAL. The Gateway blocks the transfer to Port 3001 and instead routes the incident to the "Forensic Approval Queue" in the SOC admin dashboard.
+   - Score 90+: Action BLOCKED. The ZTA immediately terminates the session and throws a 403 Forbidden. The event is logged in "Incident Management".
+
+--------------------------------------------------------------------------------
+3. WHAT IS VISIBLE & FULLY INTEGRATED (Show This to the Judge!)
+--------------------------------------------------------------------------------
+
+You can physically demonstrate the entire Zero Trust lifecycle working natively across both applications:
+
+1. Live Traffic Telemetry (`/admin`)
+   - Show the judge the "Forensic Replay Visualization". Tell them every single blip or colored packet on the screen corresponds to a literal WebSocket (`socket.io`) event fired from the ZTA Gateway checking an API call.
+   - You can prove this by opening the User Banking app, logging in, and making a transfer. The packet will instantly appear on the admin screen without refreshing.
+
+2. Predictive Isolation & Time-Drift (`/predictive-isolation`)
+   - We built an "Override Engine". Because we can't wait until 3:00 AM to present a hack, you can use the sliders on this dashboard to manipulate the *System Context*. 
+   - Moving the "Time" slider to 3:00 AM forces the ZTA Gateway to perceive all incoming banking requests as happening after-hours.
+   - Show the judge how a transfer that succeeded at 9:00 AM fails and turns "Orange" when the slider is moved to 3:00 AM.
+
+3. Explainable AI Breakdown (`/explainable-ai`)
+   - Demonstrate that ZTA isn't a black box. Select an intercepted request, and the circular risk gauge will physically break down WHY the transaction was blocked (e.g., "Amount = 50 points, Time = 30 points").
+
+4. The Forensic Approval Loop (`/approvals`)
+   - Show how a "Sandboxed" transaction doesn't just disappear. The user is told "Pending Admin Approval".
+   - Switch to the SOC Dashboard `/approvals`. Show the judge the exact incident waiting.
+   - Click "Approve Override". 
+   - Show how the API connects back to the ZTA Gateway, bypasses the original block, and finalizes the transaction on the Banking Backend.
+
+5. Incident Management (`/incidents`)
+   - Show how high-risk (Score 90+) attacks are permanently blocked and flagged for analyst review in the dark-themed Incident feed.
+
+--------------------------------------------------------------------------------
+4. WHAT IS MOCKED / NOT VISIBLE (Integration Limits)
+--------------------------------------------------------------------------------
+
+Be transparent with the judges. We focused on building the *logic routing* and *mathematical telemetry* of a ZTA system rather than 3rd-party vendor plugins:
+
+- AI Model: The platform uses an algorithmic rules-engine (`analyzeRisk` scoring) rather than a heavy Neural Network (LLM/Machine Learning model) to calculate risk. We call it "Explainable AI" because it maps weights to deterministic behaviors.
+- Keycloak / OAuth: The system uses simulated local JWT implementations rather than an enterprise Keycloak IAM server to handle identity. 
+- Geographic Location Traversal: IP addresses and locations are simulated in the payload; we do not utilize a live IP-to-Geolocation API or track physical device coordinates.
+- FaceID / Hardware MFA: The MFA challenge triggers UI prompts and PIN codes, but does not use actual hardware FIDO2 keys or physical facial recognition hardware.
+- Email/SMS Alerting: The SOC dashboard provides real-time alerts via WebSockets, but we disabled external SMTP servers, meaning the system won't text/email your phone when a hack occurs.
+
+--------------------------------------------------------------------------------
+5. DEMO SCRIPT (Step-by-Step for the Judge)
+--------------------------------------------------------------------------------
+
+1. Open http://localhost:5173 (Banking App) and http://localhost:5174/predictive-isolation (Security App) side-by-side.
+2. In the Banking App, transfer ₹50,000. 
+3. Point to the Security App: "Notice the packet flowed completely green. The risk score was 10. The ZTA permitted the transaction to hit the Banking core."
+4. In the Security App, grab the "Temporal Simulation Strap" slider and pull it to "02:00 AM". Explain that you're forcing an out-of-hours state for demo purposes.
+5. In the Banking App, attempt the exact same ₹50,000 transfer.
+6. Boom! The Banking App is blocked and says "Risk Too High". 
+7. Point to the Security App: Look at the packet flow. It hit an orange barrier. 
+8. Click over to the "Explainable AI" tab. Show the judge: "The system dynamically calculated a 70% risk score. Why? Because the time factor heavily outweighed the normal transaction value."
+9. Click to the "Approval Queue". Show the transaction sitting securely awaiting intervention. Approve it, and show the funds successfully clear. 
+
+================================================================================
+END OF DOCUMENT
+================================================================================

@@ -106,7 +106,7 @@ export default function PredictiveIsolation() {
             <div className="strap-group config-group">
                <div className="strap-label">
                  <Sliders size={16} className="neon-purple" />
-                 <span>Min Amount Threshold ($)</span>
+                 <span>Min Amount Threshold (₹)</span>
                </div>
                <input 
                 type="range" min="1000" max="1000000" step="1000"
@@ -114,7 +114,7 @@ export default function PredictiveIsolation() {
                 onChange={(e) => setOverrides({...overrides, amountLimit: parseInt(e.target.value)})}
                 className="cyber-slider purple-slider"
                />
-               <div className="strap-subval">${overrides.amountLimit.toLocaleString()}</div>
+               <div className="strap-subval">₹{overrides.amountLimit.toLocaleString('en-IN')}</div>
             </div>
 
             <div className="strap-group config-group">

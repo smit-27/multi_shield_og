@@ -43,7 +43,7 @@ export default function Treasury() {
     }
 
     // Tier 3: MFA required
-    if (data.mfa_required) {
+    if (data.mfa_required || data.step_up_required) {
       setFreezeOverlay({ mode: 'mfa', data })
       setPendingAction({ type: actionType, body: actionBody })
       return
@@ -71,7 +71,7 @@ export default function Treasury() {
     const body = { account_id: formData.account_id, amount: Number(formData.amount), description: formData.description }
     try {
       const res = await apiFetch('/api/treasury/withdraw', { method: 'POST', body: JSON.stringify(body) })
-      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+      if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
         handleSecurityResponse(res, 'withdraw', body)
         setShowWithdraw(false)
         return
@@ -89,7 +89,7 @@ export default function Treasury() {
     const body = { from_account_id: formData.from_account_id, to_account_id: formData.to_account_id, amount: Number(formData.amount), description: formData.description }
     try {
       const res = await apiFetch('/api/treasury/transfer', { method: 'POST', body: JSON.stringify(body) })
-      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+      if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
         handleSecurityResponse(res, 'transfer', body)
         setShowTransfer(false)
         return
@@ -114,7 +114,7 @@ export default function Treasury() {
         body: JSON.stringify(pendingAction.body),
         headers: { 'X-Device': 'internal workstation' }
       })
-      if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+      if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
         showToast('Action still requires additional verification', 'error')
       } else {
         showToast(res.message || 'Action completed successfully')
@@ -142,7 +142,7 @@ export default function Treasury() {
           body: JSON.stringify({ ...pendingAction.body, details: `Justified: ${reason}` }),
           headers: { 'X-Device': 'internal workstation' }
         })
-        if (res.justify_required || res.mfa_required || res.admin_approval_required) {
+        if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
           handleSecurityResponse(res, pendingAction.type, pendingAction.body)
         } else {
           showToast(res.message || 'Action completed successfully')
