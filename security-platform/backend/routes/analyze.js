@@ -1,17 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
-const { analyzeRisk } = require('../engine/riskEngine');
+const { analyzeRiskWithML } = require('../engine/riskEngine');
 const { makeDecision } = require('../engine/policyEngine');
 const crypto = require('crypto');
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const activity = req.body;
   if (!activity.user_id || !activity.action) {
     return res.status(400).json({ error: 'user_id and action are required' });
   }
 
-  const riskResult = analyzeRisk(activity);
+  // ML-enhanced risk analysis (async — calls Python microservice)
+  const riskResult = await analyzeRiskWithML(activity);
   const policyResult = makeDecision(riskResult.score, riskResult.factors);
 
   const insertResult = runSql(
@@ -35,12 +36,15 @@ router.post('/', (req, res) => {
     incidentId = incResult.lastInsertRowid;
   }
 
-  // Build response
+  // Build response with ML explanation
   const response = {
     risk_score: riskResult.score,
     decision: policyResult.decision,
     reason: policyResult.reason,
-    factors: riskResult.factors
+    factors: riskResult.factors,
+    ml_score: riskResult.ml_score,
+    ml_explanation: riskResult.ml_explanation,
+    rule_score: riskResult.rule_score,
   };
 
   // Tier 3: Create MFA challenge
@@ -57,17 +61,20 @@ router.post('/', (req, res) => {
 
   // Tier 4: Create approval request
   if (policyResult.decision === 'ADMIN_APPROVAL') {
+    const mlExplanationMsg = riskResult.ml_explanation?.length > 0
+      ? `Action blocked due to: ${riskResult.ml_explanation.join(', ')}`
+      : '';
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const approvalResult = runSql(
-      "INSERT INTO approval_requests (incident_id, user_id, username, role, action, amount, risk_score, status, expires_at) VALUES (?,?,?,?,?,?,?,'pending',?)",
+      "INSERT INTO approval_requests (incident_id, user_id, username, role, action, amount, risk_score, status, expires_at, user_message) VALUES (?,?,?,?,?,?,?,'pending',?,?)",
       [incidentId, activity.user_id, activity.username || '', activity.role || '',
-       activity.action, activity.amount || 0, riskResult.score, expiresAt]
+       activity.action, activity.amount || 0, riskResult.score, expiresAt, mlExplanationMsg]
     );
     response.request_id = approvalResult.lastInsertRowid;
   }
 
   runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('risk_analysis', ?, 'system')",
-    [JSON.stringify({ user_id: activity.user_id, action: activity.action, risk_score: riskResult.score, decision: policyResult.decision })]);
+    [JSON.stringify({ user_id: activity.user_id, action: activity.action, risk_score: riskResult.score, decision: policyResult.decision, ml_score: riskResult.ml_score, ml_explanation: riskResult.ml_explanation })]);
 
   res.json(response);
 });

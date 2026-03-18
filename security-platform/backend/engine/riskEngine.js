@@ -89,4 +89,67 @@ function analyzeRisk(activity) {
   return { score: Math.min(100, totalScore), factors };
 }
 
-module.exports = { analyzeRisk };
+// ─── ML-Enhanced Risk Analysis ───────────────────────────────────────
+
+const { getMLRiskScore } = require('./mlClient');
+
+/**
+ * Derive ML behavioral features from activity context.
+ * In production these would come from a user behavior store;
+ * here we simulate them from the available activity data.
+ */
+function deriveMLFeatures(activity) {
+  const hour = activity.hour != null ? activity.hour : new Date().getHours();
+  const device = (activity.device || '').toLowerCase();
+  const amount = activity.amount || 0;
+
+  return {
+    avg_login_hour: hour,
+    num_devices: device ? 2 : 1,
+    file_access_count: ['bulk_data_export', 'export', 'bulk_download'].includes(activity.action) ? 15 : 3,
+    usb_activity: amount > 500000 ? 8 : (amount > 100000 ? 4 : 1),
+    email_count: 5,
+    late_login: (hour < 8 || hour >= 20) ? 1 : 0,
+    multi_device: device && !['internal workstation', 'office terminal', 'branch terminal'].some(d => device.includes(d)) ? 1 : 0,
+    large_file_activity: ['bulk_data_export', 'export'].includes(activity.action) ? 1 : 0,
+    high_usb_usage: amount > 500000 ? 1 : 0,
+  };
+}
+
+/**
+ * Enhanced risk analysis combining rule-based + ML behavioral scoring.
+ * Returns blended score (60% ML, 40% rule-based), merged factors, and ML explanation.
+ */
+async function analyzeRiskWithML(activity) {
+  // 1. Run existing rule-based engine
+  const ruleResult = analyzeRisk(activity);
+
+  // 2. Derive ML features and call ML microservice
+  const mlFeatures = deriveMLFeatures(activity);
+  const mlResult = await getMLRiskScore(mlFeatures);
+
+  // 3. Blend scores: 60% ML behavioral + 40% rule-based transactional
+  const blendedScore = Math.min(100, Math.round(0.6 * mlResult.risk_score + 0.4 * ruleResult.score));
+
+  // 4. Add ML explanation as a factor
+  const mlExplanationText = mlResult.explanation.join(', ');
+  const factors = [
+    ...ruleResult.factors,
+    {
+      factor: 'ML Behavioral Analysis',
+      detail: `ML model scored ${mlResult.risk_score}/100 — key factors: ${mlExplanationText}`,
+      score: Math.round(mlResult.risk_score * 0.6),
+      maxScore: 60,
+    },
+  ];
+
+  return {
+    score: blendedScore,
+    factors,
+    ml_score: mlResult.risk_score,
+    ml_explanation: mlResult.explanation,
+    rule_score: ruleResult.score,
+  };
+}
+
+module.exports = { analyzeRisk, analyzeRiskWithML };
