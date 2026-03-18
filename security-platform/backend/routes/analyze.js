@@ -3,6 +3,7 @@ const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
 const { analyzeRisk } = require('../engine/riskEngine');
 const { makeDecision } = require('../engine/policyEngine');
+const { logAuditEvent } = require('../security/auditLogger');
 const crypto = require('crypto');
 
 router.post('/', (req, res) => {
@@ -66,8 +67,9 @@ router.post('/', (req, res) => {
     response.request_id = approvalResult.lastInsertRowid;
   }
 
-  runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('risk_analysis', ?, 'system')",
-    [JSON.stringify({ user_id: activity.user_id, action: activity.action, risk_score: riskResult.score, decision: policyResult.decision })]);
+  logAuditEvent('risk_analysis',
+    { user_id: activity.user_id, action: activity.action, risk_score: riskResult.score, decision: policyResult.decision },
+    'system');
 
   res.json(response);
 });

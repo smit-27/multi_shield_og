@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
+const { logAuditEvent } = require('../security/auditLogger');
 
 // GET /api/approvals — List all approval requests
 router.get('/', (req, res) => {
@@ -55,8 +56,9 @@ router.post('/:id/message', (req, res) => {
   
   runSql("UPDATE approval_requests SET user_message=? WHERE id=?", [fullMessage, req.params.id]);
   
-  runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('approval_message', ?, ?)",
-    [JSON.stringify({ request_id: req.params.id, message }), request.user_id]);
+  logAuditEvent('approval_message',
+    { request_id: req.params.id, message },
+    request.user_id);
 
   res.json({ success: true, message: 'Message sent to admin' });
 });
@@ -87,8 +89,9 @@ router.post('/:id/decide', (req, res) => {
       [incidentStatus, incidentResolution, request.incident_id]);
   }
 
-  runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('approval_decision', ?, 'admin')",
-    [JSON.stringify({ request_id: req.params.id, decision, response: adminResponse })]);
+  logAuditEvent('approval_decision',
+    { request_id: req.params.id, decision, response: adminResponse },
+    'admin');
 
   res.json({ success: true, message: `Request ${decision}` });
 });

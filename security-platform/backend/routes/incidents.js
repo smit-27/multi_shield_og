@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
+const { logAuditEvent } = require('../security/auditLogger');
 
 router.get('/', (req, res) => {
   const { status, limit = 50 } = req.query;
@@ -37,8 +38,9 @@ router.post('/:id/resolve', (req, res) => {
   if (!queryOne('SELECT * FROM incidents WHERE id = ?', [req.params.id])) return res.status(404).json({ error: 'Not found' });
   runSql("UPDATE incidents SET status='resolved',resolution=?,resolved_by=?,resolved_at=datetime('now') WHERE id=?",
     [resolution || 'Resolved by admin', resolved_by, req.params.id]);
-  runSql("INSERT INTO audit_log (event_type,details,performed_by) VALUES ('incident_resolved',?,?)",
-    [JSON.stringify({ incident_id: req.params.id, resolution }), resolved_by]);
+  logAuditEvent('incident_resolved',
+    { incident_id: req.params.id, resolution },
+    resolved_by);
   res.json({ success: true });
 });
 
@@ -47,8 +49,9 @@ router.post('/:id/approve', (req, res) => {
   if (!queryOne('SELECT * FROM incidents WHERE id = ?', [req.params.id])) return res.status(404).json({ error: 'Not found' });
   runSql("UPDATE incidents SET status='approved',resolution='Approved by admin override',resolved_by=?,resolved_at=datetime('now') WHERE id=?",
     [approved_by, req.params.id]);
-  runSql("INSERT INTO audit_log (event_type,details,performed_by) VALUES ('incident_approved',?,?)",
-    [JSON.stringify({ incident_id: req.params.id }), approved_by]);
+  logAuditEvent('incident_approved',
+    { incident_id: req.params.id },
+    approved_by);
   res.json({ success: true, message: 'Action approved' });
 });
 

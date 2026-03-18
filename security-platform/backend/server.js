@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { initDb } = require('./db');
+const { initBlockchain } = require('./security/blockchainClient');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -10,6 +12,9 @@ app.use(express.json());
 
 async function start() {
   await initDb();
+
+  // ── Initialize Blockchain Connection ──
+  initBlockchain();
 
   // ─── ZTA Middleware ───
   const { verifyJwt } = require('./middleware/keycloak');
@@ -24,6 +29,9 @@ async function start() {
   app.use('/api/activities', require('./routes/activities'));
   app.use('/api/mfa', require('./routes/mfa'));
   app.use('/api/approvals', require('./routes/approvals'));
+
+  // ─── Blockchain Audit API ───
+  app.use('/api/audit', require('./routes/audit'));
 
   // ─── ZTA Banking Proxy (JWT required) ───
   // All /api/banking/* requests are proxied to dummy-banking after ZTA verification

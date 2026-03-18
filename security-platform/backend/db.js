@@ -48,7 +48,10 @@ async function initDb() {
 
   db.run(`CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
-    details TEXT, performed_by TEXT, created_at TEXT DEFAULT (datetime('now'))
+    details TEXT, performed_by TEXT,
+    sha256_hash TEXT,
+    blockchain_tx_hash TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS mfa_challenges (
