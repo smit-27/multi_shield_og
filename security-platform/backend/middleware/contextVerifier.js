@@ -9,6 +9,7 @@
  */
 const geoip = require('geoip-lite');
 const { queryOne } = require('../db');
+const { logToDashboard } = require('./dashboardLogger');
 
 // Allowed IP ranges (configurable via env)
 const ALLOWED_IP_RANGES = (process.env.ALLOWED_IPS || '127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::ffff:127.0.0.1').split(',');
@@ -104,43 +105,92 @@ function getTimeContext() {
 }
 
 /**
- * Express middleware: Verify request context (IP, time, location)
+ * Location Kill Switch (System-Wide Master Fuse)
  * 
- * Does NOT block requests outright — instead attaches risk signals
- * to req.ztaContext for the risk engine to incorporate.
- * Only blocks if IP is from a sanctioned/blocked country.
+ * Determines if the system should run based on the user's origin country.
  */
-function verifyContext(req, res, next) {
+const locationKillSwitch = (req, res, next) => {
+  const allowedCountry = 'IN'; // Example: System only runs in India
+  
+  // Real deployment would use x-user-geo-location set by edge proxy (e.g., Cloudflare)
+  // For demo, we evaluate based on local IP geo.
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
   const location = getLocationContext(ip);
-  const time = getTimeContext();
+  const userIPLocation = req.headers['x-user-geo-location'] || location.country; 
 
-  // Hard block: unknown country not in allowlist (unless internal)
-  if (!location.trusted && location.country !== 'UNKNOWN') {
-    console.warn(`[ZTA] Blocked request from untrusted location: ${location.country} (${ip})`);
-    return res.status(403).json({
-      error: 'Access denied',
-      message: `Access from ${location.country} is not permitted by security policy.`,
-      location: { country: location.country, city: location.city }
-    });
+  // Skip local requests for demo purposes
+  if (ip !== '127.0.0.1' && ip !== '::1' && userIPLocation !== allowedCountry && userIPLocation !== 'UNKNOWN') {
+      console.error(`[ZTA CRITICAL] Access attempt from unauthorized region: ${userIPLocation}. System Inaccessible.`);
+      
+      logToDashboard(
+        { ztaUser: { user_id: 'Blocked-Guest', role: 'none' }, ip, headers: req.headers, ztaContext: { location } },
+        100,
+        'BLOCKED',
+        `Kill-Switch Triggered: Access from ${userIPLocation} is blocked globally.`
+      );
+
+      return res.status(403).send("Service Unavailable in your region.");
+  }
+  
+  // Attach location context
+  req.ztaContext = req.ztaContext || {};
+  req.ztaContext.location = location;
+  req.ztaContext.ip = ip;
+  next();
+};
+
+/**
+ * Time-Constraint Middleware (Temporal Access Control)
+ * 
+ * Uses Server System Time to decide if the user is acting during a "High Risk" hour.
+ * Applies Micro-segmentation: Forces traffic into a Sandbox for off-hour activity.
+ */
+const timeConstraintMiddleware = (req, res, next) => {
+  const now = new Date();
+  
+  // Check for temporal override from predictive dashboard
+  let currentHour = now.getHours(); // Uses the server's real system time
+  const overrideTime = req.headers['x-zta-override-time'];
+  if (overrideTime != null && !isNaN(parseInt(overrideTime))) {
+      currentHour = parseInt(overrideTime);
   }
 
-  // Calculate context risk score contribution
-  let contextRisk = 0;
-  contextRisk += time.riskContribution;
-  if (!location.trusted && location.country === 'UNKNOWN') contextRisk += 5;
+  const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Attach context to request for downstream middleware
-  req.ztaContext = {
-    ip,
-    location,
-    time,
-    contextRisk,
-    device: req.headers['x-device'] || req.headers['user-agent'] || 'unknown',
-    verified: true
+  // Define Policy: Allow full access only Mon-Fri, 9 AM - 6 PM
+  const isOfficeHours = (currentDay >= 1 && currentDay <= 5) && (currentHour >= 9 && currentHour < 18);
+
+  // Attach time context
+  req.ztaContext = req.ztaContext || {};
+  req.ztaContext.time = {
+    hour: currentHour,
+    day: currentDay,
+    isBusinessHours: isOfficeHours,
+    isWeekday: (currentDay >= 1 && currentDay <= 5),
+    timestamp: now.toISOString(),
+    riskContribution: isOfficeHours ? 0 : 15,
+    isSimulated: !!overrideTime
   };
 
-  next();
-}
+  req.ztaContext.contextRisk = req.ztaContext.time.riskContribution;
+  req.ztaContext.device = req.headers['x-device'] || req.headers['user-agent'] || 'unknown';
+  req.ztaContext.verified = true;
 
-module.exports = { verifyContext, getLocationContext, getTimeContext, isIpAllowed };
+  if (!isOfficeHours) {
+      // Apply Micro-segmentation: Force into Sandbox for off-hour activity
+      req.isSandboxed = true;
+      req.targetSystem = 'http://sandbox-banking-system:5000';
+      console.log(`[ZTA ALERT] Off-hours access detected at ${now.toISOString()}. Segmenting traffic to Sandbox.`);
+      
+      logToDashboard(
+        req,
+        50,
+        'SANDBOXED',
+        `Temporal Access Control: Off-hours detected. Redirecting to Sandbox.`
+      );
+  }
+
+  next();
+};
+
+module.exports = { locationKillSwitch, timeConstraintMiddleware, getLocationContext, getTimeContext, isIpAllowed };

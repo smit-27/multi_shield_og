@@ -11,6 +11,7 @@
  */
 const crypto = require('crypto');
 const { queryOne, runSql } = require('../db');
+const { logToDashboard } = require('./dashboardLogger');
 
 // Step-up challenge status constants
 const STEP_UP_STATUS = {
@@ -91,7 +92,7 @@ function verifyStepUpStep(challengeId, step, value) {
           [challenge.user_id, 'Face authentication failed during step-up verification', lockExpiry]
         );
 
-        // Log the lockout
+        // Log the lockout to the DB
         runSql(
           "INSERT INTO audit_log (event_type, details, performed_by) VALUES ('account_locked', ?, 'system')",
           [JSON.stringify({
@@ -101,6 +102,14 @@ function verifyStepUpStep(challengeId, step, value) {
             lock_duration: '30 minutes',
             expires_at: lockExpiry
           })]
+        );
+
+        // Emit real-time log to Dashboard
+        logToDashboard(
+          { ztaUser: { user_id: challenge.user_id, role: challenge.role }, method: 'POST', originalUrl: '/api/zta/step-up/verify' },
+          challenge.risk_score || 80,
+          'AUTH_LOCKED',
+          `User ${challenge.user_id} failed Face Auth; Account Locked for 30 min.`
         );
 
         return {

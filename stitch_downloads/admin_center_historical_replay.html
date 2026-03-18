@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MultiShield - Forensic Audit &amp; Predictive Isolation</title>
+<!-- Tailwind CSS v3 CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="theme-variables">
+    :root {
+      --bg-primary: #0f0b1e;
+      --bg-secondary: #150f28;
+      --bg-card: #1c1533;
+      --bg-surface: #1e1738;
+      --border: #2d2548;
+      --border-accent: #3d2d6b;
+      --text-primary: #eae6f5;
+      --text-secondary: #a09bb8;
+      --text-muted: #635d7a;
+      --accent: #7c5cfc;
+      --cyan: #22d3ee;
+      --amber: #f59e0b;
+      --danger: #f43f5e;
+      --success: #10b981;
+      --font: 'Inter', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+  </style>
+<style data-purpose="custom-layouts">
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font);
+      overflow-x: hidden;
+    }
+
+    /* Cyber Grid Background */
+    .cyber-grid {
+      background-image: 
+        linear-gradient(rgba(124, 92, 252, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 92, 252, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .obsidian-card {
+      background: rgba(23, 17, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .obsidian-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+
+    .neon-text-cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+    .neon-text-amber { color: var(--amber); text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+    .neon-text-danger { color: var(--danger); text-shadow: 0 0 10px rgba(244, 63, 94, 0.5); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 10px; }
+
+    /* Map Threat Vectors */
+    @keyframes dash {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .threat-vector {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: dash 3s linear infinite;
+    }
+    
+    .map-ping {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    @keyframes ping {
+      75%, 100% {
+        transform: scale(3);
+        opacity: 0;
+      }
+    }
+  </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/></head>
+<body class="cyber-grid min-h-screen">
+<!-- BEGIN: MainLayout -->
+<div class="flex min-h-screen">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-[#150f28] border-r border-[#2d2548] flex flex-col fixed h-full z-50">
+<div class="p-6 border-b border-[#2d2548]">
+<h1 class="flex items-center gap-3 font-bold text-lg tracking-tight">
+<span class="w-8 h-8 bg-gradient-to-br from-[#7c5cfc] to-[#a855f7] rounded-lg flex items-center justify-center text-white text-sm">MS</span>
+        MultiShield
+      </h1>
+<p class="text-[10px] text-[#635d7a] uppercase tracking-[2px] mt-2 font-semibold">ZTA Forensic Command</p>
+</div>
+<nav class="flex-1 p-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#7c5cfc] bg-[#7c5cfc1a] font-semibold border-l-2 border-[#7c5cfc]" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Live SOC
+      </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#a09bb8] hover:bg-[#1c1533] transition-all" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Forensics
+      </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#a09bb8] hover:bg-[#1c1533] transition-all" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Policy Guard
+      </a>
+</nav>
+<div class="p-6 border-t border-[#2d2548]">
+<div class="flex items-center gap-2 text-[#10b981] text-xs font-bold">
+<div class="w-2 h-2 bg-[#10b981] rounded-full animate-pulse"></div>
+        SYSTEM OPTIMAL
+      </div>
+<div class="mt-2 text-[10px] text-[#635d7a] font-mono">NODE: US-EAST-01</div>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: MainContent -->
+<main class="ml-64 flex-1 p-8 relative">
+<!-- BEGIN: PageHeader -->
+<header class="flex justify-between items-end mb-8">
+<div>
+<h2 class="text-3xl font-bold tracking-tight text-white">Forensic Dashboard</h2>
+<p class="text-[#a09bb8] text-sm mt-1">Real-time aggregate risk analysis and global threat tracking.</p>
+</div>
+<div class="flex gap-4">
+<div class="text-right">
+<p class="text-[10px] text-[#635d7a] uppercase tracking-widest font-bold">Terminal Time</p>
+<p class="text-lg font-mono font-bold text-[#7c5cfc]" id="terminal-clock">14:22:05:88</p>
+</div>
+</div>
+</header>
+<!-- END: PageHeader -->
+<!-- BEGIN: KPI Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="obsidian-card p-6 rounded-xl border-l-4 border-l-[#f43f5e]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Active Threats</p>
+<span class="px-2 py-0.5 rounded bg-[#f43f5e1a] text-[#f43f5e] text-[10px] font-mono font-bold">+12.4%</span>
+</div>
+<h3 class="text-4xl font-mono font-bold mt-2 neon-text-danger">42</h3>
+<p class="text-xs text-[#635d7a] mt-2">Critical escalation required</p>
+</div>
+<div class="obsidian-card p-6 rounded-xl border-l-4 border-l-[#22d3ee]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Gateway Load</p>
+<span class="px-2 py-0.5 rounded bg-[#22d3ee1a] text-[#22d3ee] text-[10px] font-mono font-bold">STABLE</span>
+</div>
+<h3 class="text-4xl font-mono font-bold mt-2 neon-text-cyan">8.4<span class="text-lg">Gbps</span></h3>
+<p class="text-xs text-[#635d7a] mt-2">92% throughput efficiency</p>
+</div>
+<div class="obsidian-card p-6 rounded-xl border-l-4 border-l-[#f59e0b]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Global Risk Index</p>
+<div class="flex gap-1">
+<div class="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
+<div class="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
+<div class="w-1 h-3 bg-[#635d7a] rounded-full"></div>
+</div>
+</div>
+<h3 class="text-4xl font-mono font-bold mt-2 neon-text-amber">34.2</h3>
+<p class="text-xs text-[#635d7a] mt-2">Elevated: Temporal Drift detected</p>
+</div>
+</section>
+<!-- END: KPI Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+<!-- BEGIN: Geographical Threat Map -->
+<section class="lg:col-span-3 space-y-6">
+<div class="obsidian-card rounded-2xl h-[550px] overflow-hidden flex flex-col border-[#22d3ee]/40">
+<div class="p-5 border-b border-[#2d2548] flex justify-between items-center bg-[#0a0515] relative z-20">
+<h4 class="text-xs font-bold uppercase tracking-[2px] text-[#a09bb8] flex items-center gap-3"><span class="w-2 h-2 bg-[#22d3ee] rounded-full animate-pulse"></span>
+              Historical Threat Replay &amp; Node Trace</h4>
+<div class="flex gap-6 text-[10px] font-mono">
+<div class="flex items-center gap-2"><span class="w-2 h-2 bg-[#10b981] rounded-full"></span> SECURE NODE</div>
+<div class="flex items-center gap-2"><span class="w-2 h-2 bg-[#f43f5e] rounded-full"></span> THREAT ORIGIN</div>
+</div>
+</div>
+<div class="flex-1 relative bg-[#05050a] overflow-hidden group">
+<!-- Background Map SVG (Stylized Cyber Map) -->
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<svg class="w-full h-full text-[#7c5cfc]" fill="currentColor" viewbox="0 0 1000 500">
+<!-- Very simplified world map dots/blobs for aesthetic -->
+<path d="M150,150 Q180,120 220,150 T300,140 Q350,160 380,200 T450,220 Q500,180 550,200 T650,180 Q700,150 750,170 T850,200 Q900,250 850,350 T750,400 Q650,450 550,420 T400,450 Q300,420 200,400 T150,350 Z" opacity="0.1"></path>
+<circle cx="200" cy="180" opacity="0.1" r="40"></circle>
+<circle cx="700" cy="220" opacity="0.1" r="60"></circle>
+<circle cx="500" cy="350" opacity="0.1" r="30"></circle>
+<!-- Grid Overlay -->
+<defs>
+<pattern height="20" id="mapGrid" patternunits="userSpaceOnUse" width="20">
+<path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" stroke-width="0.2"></path>
+</pattern>
+</defs>
+<rect fill="url(#mapGrid)" height="500" width="1000"></rect>
+</svg>
+</div>
+<!-- Threat Overlay UI -->
+<div class="absolute inset-0 z-10">
+<!-- Protected Node: North America -->
+<div class="absolute top-[35%] left-[20%] group/node">
+<div class="w-4 h-4 bg-[#10b981] rounded-full shadow-[0_0_15px_#10b981] border-2 border-white/20"></div>
+<div class="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#1c1533]/80 border border-[#2d2548] px-2 py-1 rounded text-[9px] text-[#10b981] font-bold">HQ_NODE_ALPHA</div>
+</div>
+<!-- Protected Node: Europe -->
+<div class="absolute top-[30%] left-[52%] group/node">
+<div class="w-4 h-4 bg-[#10b981] rounded-full shadow-[0_0_15px_#10b981] border-2 border-white/20"></div>
+<div class="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#1c1533]/80 border border-[#2d2548] px-2 py-1 rounded text-[9px] text-[#10b981] font-bold">EURO_EDGE_01</div>
+</div>
+<!-- Threat Vectors (SVG) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none">
+<!-- Vector 1: SE Asia to NA -->
+<path class="threat-vector" d="M 800 350 Q 500 100 200 175" fill="none" stroke="rgba(244, 63, 94, 0.4)" stroke-width="1.5" style="animation-duration: 4s;"></path>
+<!-- Vector 2: Eastern Europe to NA -->
+<path class="threat-vector" d="M 650 200 Q 400 50 200 175" fill="none" stroke="rgba(244, 63, 94, 0.4)" stroke-width="1.5" style="animation-duration: 3s;"></path>
+<!-- Vector 3: S America to Europe -->
+<path class="threat-vector" d="M 300 400 Q 450 300 520 150" fill="none" stroke="rgba(244, 63, 94, 0.4)" stroke-width="1.5" style="animation-duration: 5s;"><!-- Historical Replay Paths -->
+<path d="M 100 300 Q 300 200 520 150" fill="none" stroke="rgba(34, 211, 238, 0.2)" stroke-dasharray="4 4" stroke-width="1"></path>
+<path d="M 850 150 Q 700 100 520 150" fill="none" stroke="rgba(34, 211, 238, 0.2)" stroke-dasharray="4 4" stroke-width="1"></path></path>
+</svg>
+<!-- Threat Origin Pings -->
+<div class="map-ping top-[70%] left-[80%]"></div>
+<div class="map-ping top-[40%] left-[65%]"></div>
+<div class="map-ping top-[80%] left-[30%]"></div>
+</div>
+<!-- Top Threat Origins Legend -->
+<div class="absolute bottom-6 left-6 z-20 w-56">
+<div class="obsidian-card p-4 rounded-xl border-[#2d2548]/50 bg-[#0a0515]/90">
+<h5 class="text-[10px] font-bold text-[#a09bb8] uppercase tracking-widest mb-3 border-b border-[#2d2548] pb-2">Top Threat Origins</h5>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<span class="text-[11px] text-[#eae6f5] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-red-500"></span> Russia
+                    </span>
+<span class="text-[10px] font-mono text-[#f43f5e] font-bold">84% RISK</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-[11px] text-[#eae6f5] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-orange-500"></span> China
+                    </span>
+<span class="text-[10px] font-mono text-[#f59e0b] font-bold">62% RISK</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-[11px] text-[#eae6f5] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-yellow-500"></span> Brazil
+                    </span>
+<span class="text-[10px] font-mono text-[#a09bb8] font-bold">24% RISK</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Map Controls Overlay -->
+<div class="absolute top-6 right-6 z-20 flex flex-col gap-2">
+<button class="w-8 h-8 bg-[#1c1533] border border-[#2d2548] rounded flex items-center justify-center text-[#a09bb8] hover:text-white transition-colors">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<button class="w-8 h-8 bg-[#1c1533] border border-[#2d2548] rounded flex items-center justify-center text-[#a09bb8] hover:text-white transition-colors">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-[80%] z-30">
+<div class="obsidian-card px-6 py-3 rounded-2xl flex items-center gap-6 bg-[#0a0515]/95 border-[#22d3ee]/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+<div class="flex flex-col">
+<span class="text-[8px] font-bold text-[#22d3ee] uppercase tracking-[2px]">Historical Replay</span>
+<button class="mt-1 flex items-center justify-center text-[#22d3ee] hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl">play_circle</span>
+</button>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex justify-between text-[9px] font-mono text-[#635d7a] uppercase tracking-wider">
+<span>-24h</span>
+<span>-12h</span>
+<span class="text-[#22d3ee] font-bold">Live</span>
+</div>
+<div class="relative h-1 w-full bg-[#2d2548] rounded-full group cursor-pointer">
+<div class="absolute top-0 left-0 h-full w-[65%] bg-gradient-to-r from-[#7c5cfc] to-[#22d3ee] rounded-full shadow-[0_0_10px_#22d3ee]"></div>
+<div class="absolute top-1/2 left-[65%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_15px_#fff] border-4 border-[#22d3ee]"></div>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-[#a09bb8] font-mono leading-none">REPLAY_TS</p>
+<p class="text-xs font-mono font-bold text-white">-08:14:22</p>
+</div>
+</div>
+</div></div>
+</div>
+<!-- BEGIN: Activity Ticker -->
+<div class="obsidian-card rounded-xl overflow-hidden">
+<div class="px-6 py-4 border-b border-[#2d2548] bg-[#1c1533]">
+<h3 class="text-[11px] font-bold text-[#a09bb8] uppercase tracking-widest">Live Forensics Log</h3>
+</div>
+<div class="p-0 max-h-[180px] overflow-y-auto font-mono text-[11px]">
+<table class="w-full text-left">
+<thead class="bg-[#150f28] text-[#635d7a]">
+<tr>
+<th class="px-6 py-3 font-medium">TIMESTAMP</th>
+<th class="px-6 py-3 font-medium">SOURCE</th>
+<th class="px-6 py-3 font-medium">ACTION</th>
+<th class="px-6 py-3 font-medium">SCORE</th>
+<th class="px-6 py-3 font-medium">SIGNATURE</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#2d2548] text-[#a09bb8]">
+<tr class="hover:bg-[#7c5cfc0d] transition-colors">
+<td class="px-6 py-3 text-[#635d7a]">14:21:44.22</td>
+<td class="px-6 py-3">192.168.1.45</td>
+<td class="px-6 py-3"><span class="text-[#10b981]">ALLOW</span></td>
+<td class="px-6 py-3">0.02</td>
+<td class="px-6 py-3">SHA-256: 4A7B...</td>
+</tr>
+<tr class="hover:bg-[#7c5cfc0d] transition-colors">
+<td class="px-6 py-3 text-[#635d7a]">14:21:42.09</td>
+<td class="px-6 py-3 text-[#eae6f5]">84.12.112.5</td>
+<td class="px-6 py-3"><span class="text-[#f59e0b]">SANDBOX</span></td>
+<td class="px-6 py-3 font-bold text-[#f59e0b]">0.68</td>
+<td class="px-6 py-3">AE-TEMP-DRIFT</td>
+</tr>
+<tr class="hover:bg-[#7c5cfc0d] transition-colors bg-[#f43f5e0a]">
+<td class="px-6 py-3 text-[#635d7a]">14:21:38.11</td>
+<td class="px-6 py-3 text-[#eae6f5]">203.0.113.1</td>
+<td class="px-6 py-3"><span class="text-[#f43f5e] font-bold">BLOCK</span></td>
+<td class="px-6 py-3 font-bold text-[#f43f5e]">0.94</td>
+<td class="px-6 py-3">SQL-INJ-VECTOR</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- END: Activity Ticker -->
+</section>
+<!-- END: Geographical Threat Map -->
+<!-- BEGIN: Explainable AI Sidebar -->
+<aside class="space-y-6 lg:col-span-1">
+<div class="obsidian-card p-6 rounded-2xl border-t-2 border-[#7c5cfc]">
+<h4 class="text-sm font-bold text-white mb-6 flex items-center gap-2">
+<svg class="w-4 h-4 text-[#7c5cfc]" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            Explainable AI (XAI)
+          </h4>
+<div class="flex flex-col items-center mb-8">
+<div class="relative flex items-center justify-center">
+<!-- SVG Gauge -->
+<svg class="w-32 h-32 transform -rotate-90">
+<circle cx="64" cy="64" fill="transparent" r="58" stroke="#2d2548" stroke-width="8"></circle>
+<circle cx="64" cy="64" fill="transparent" r="58" stroke="url(#riskGradient)" stroke-dasharray="364.4" stroke-dashoffset="120" stroke-linecap="round" stroke-width="8"></circle>
+<defs>
+<lineargradient id="riskGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#22d3ee"></stop>
+<stop offset="100%" stop-color="#f43f5e"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-mono font-bold text-white">68</span>
+<span class="text-[9px] text-[#635d7a] font-bold uppercase tracking-widest">Risk Score</span>
+</div>
+</div>
+<p class="mt-4 text-xs text-[#a09bb8] text-center px-4 leading-relaxed">
+              Score driven primarily by <span class="text-[#f59e0b] font-bold">Temporal Anomaly</span> and <span class="text-[#22d3ee] font-bold">Geographic Drift</span>.
+            </p>
+</div>
+<div class="space-y-5">
+<!-- Factor 1 -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Temporal Anomaly</span>
+<span class="text-[#f59e0b]">High (0.82)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#f59e0b] w-[82%] shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+</div>
+</div>
+<!-- Factor 2 -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Geographic Drift</span>
+<span class="text-[#22d3ee]">Medium (0.45)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#22d3ee] w-[45%] shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
+</div>
+</div>
+<!-- Factor 3 -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Payload Signature</span>
+<span class="text-[#10b981]">Clean (0.12)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#10b981] w-[12%] shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+</div>
+</div>
+<!-- Factor 4 -->
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-[#a09bb8] uppercase tracking-tighter">Behavioral Heuristic</span>
+<span class="text-[#7c5cfc]">Baseline (0.28)</span>
+</div>
+<div class="h-1.5 w-full bg-[#2d2548] rounded-full overflow-hidden">
+<div class="h-full bg-[#7c5cfc] w-[28%] shadow-[0_0_10px_rgba(124,92,252,0.5)]"></div>
+</div>
+</div>
+</div>
+<button class="w-full mt-8 py-3 rounded-xl bg-[#7c5cfc1a] border border-[#7c5cfc33] text-[#7c5cfc] text-xs font-bold uppercase tracking-widest hover:bg-[#7c5cfc33] transition-all">
+            Full Breakdown →
+          </button>
+</div>
+<!-- Quick Actions -->
+<div class="obsidian-card p-6 rounded-2xl bg-[#0a0515]">
+<h4 class="text-[10px] font-bold text-[#635d7a] uppercase tracking-widest mb-4">Command Actions</h4>
+<div class="grid grid-cols-2 gap-3">
+<button class="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white transition-all">Flush DNS</button>
+<button class="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white transition-all">IP Ban List</button>
+<button class="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white transition-all">Isolation Mode</button>
+<button class="p-3 bg-[#f43f5e1a] border border-[#f43f5e33] rounded-lg text-xs font-semibold text-[#f43f5e] hover:bg-[#f43f5e33] transition-all">Emergency Halt</button>
+</div>
+</div>
+</aside>
+<!-- END: Explainable AI Sidebar -->
+</div>
+</main>
+<!-- END: MainContent -->
+</div>
+<!-- END: MainLayout -->
+<!-- BEGIN: Logic & Interactivity -->
+<script data-purpose="clock-logic">
+  // High-precision clock
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+    const clockEl = document.getElementById('terminal-clock');
+    if (clockEl) clockEl.innerText = `${h}:${m}:${s}:${ms}`;
+  }
+  setInterval(updateClock, 100);
+</script>
+<!-- END: Logic & Interactivity -->
+</body></html>
