@@ -26,7 +26,8 @@ router.post('/', async (req, res) => {
   }
 
   // 3. Blend scores: 50% Transaction + 50% Login Behavior
-  const blendedScore = Math.min(100, Math.round(0.5 * txnResult.score + 0.5 * loginResult.score));
+  const blendedScore = Math.min(100, txnResult.score);
+  blendedScore = Math.max(blendedScore, loginResult.score % 101);
   const allFactors = [...txnResult.factors, ...loginResult.factors];
 
   const policyResult = makeDecision(blendedScore, allFactors);
@@ -34,10 +35,10 @@ router.post('/', async (req, res) => {
   const insertResult = runSql(
     "INSERT INTO activities (user_id, username, role, action, amount, timestamp, hour, device, ip_address, details, metadata, risk_score, decision, reason, factors) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     [activity.user_id, activity.username || '', activity.role || '', activity.action, activity.amount || 0,
-     activity.timestamp || new Date().toISOString(), activity.hour != null ? activity.hour : new Date().getHours(),
-     activity.device || '', activity.ip_address || '', activity.details || '',
-     JSON.stringify(activity.metadata || {}), blendedScore, policyResult.decision,
-     policyResult.reason, JSON.stringify(allFactors)]
+    activity.timestamp || new Date().toISOString(), activity.hour != null ? activity.hour : new Date().getHours(),
+    activity.device || '', activity.ip_address || '', activity.details || '',
+    JSON.stringify(activity.metadata || {}), blendedScore, policyResult.decision,
+    policyResult.reason, JSON.stringify(allFactors)]
   );
 
   // Create incident for non-ALLOW decisions
@@ -46,8 +47,8 @@ router.post('/', async (req, res) => {
     const incResult = runSql(
       "INSERT INTO incidents (activity_id, user_id, role, action, amount, risk_score, decision, reason, factors, status) VALUES (?,?,?,?,?,?,?,?,?,'open')",
       [insertResult.lastInsertRowid, activity.user_id, activity.role || '', activity.action,
-       activity.amount || 0, blendedScore, policyResult.decision, policyResult.reason,
-       JSON.stringify(allFactors)]
+      activity.amount || 0, blendedScore, policyResult.decision, policyResult.reason,
+      JSON.stringify(allFactors)]
     );
     incidentId = incResult.lastInsertRowid;
   }
@@ -71,7 +72,7 @@ router.post('/', async (req, res) => {
     runSql(
       "INSERT INTO mfa_challenges (id, incident_id, user_id, username, role, action, amount, risk_score, status, step, otp_code) VALUES (?,?,?,?,?,?,?,?,'pending',0,?)",
       [challengeId, incidentId, activity.user_id, activity.username || '', activity.role || '',
-       activity.action, activity.amount || 0, blendedScore, otpCode]
+        activity.action, activity.amount || 0, blendedScore, otpCode]
     );
     response.challenge_id = challengeId;
   }
@@ -85,7 +86,7 @@ router.post('/', async (req, res) => {
     const approvalResult = runSql(
       "INSERT INTO approval_requests (incident_id, user_id, username, role, action, amount, risk_score, status, expires_at, user_message) VALUES (?,?,?,?,?,?,?,'pending',?,?)",
       [incidentId, activity.user_id, activity.username || '', activity.role || '',
-       activity.action, activity.amount || 0, blendedScore, expiresAt, mlExplanationMsg]
+        activity.action, activity.amount || 0, blendedScore, expiresAt, mlExplanationMsg]
     );
     response.request_id = approvalResult.lastInsertRowid;
   }
