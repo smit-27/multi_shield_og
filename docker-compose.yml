@@ -2,8 +2,9 @@
 #
 # Services:
 #   1. keycloak     — Identity Provider (OIDC) on port 8080
-#   2. security     — ZTA Gateway (security-platform) on port 3002
-#   3. banking      — Dummy Banking System on port 3001 (internal only)
+#   2. ml-service   — ML Risk Scoring Microservice on port 8000
+#   3. security     — ZTA Gateway (security-platform) on port 3002
+#   4. banking      — Dummy Banking System on port 3001 (internal only)
 #
 # Usage:
 #   docker-compose up -d
@@ -30,11 +31,33 @@ services:
     networks:
       - multishield-network
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'"]
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  # ─── ML Risk Scoring Microservice ───
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: multishield-ml
+    volumes:
+      - ./security-platform/backend/engine/models:/app/models:ro
+    environment:
+      MODEL_DIR: /app/models
+    ports:
+      - "8000:8000"
+    networks:
+      - multishield-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
 
   # ─── Security Platform (ZTA Gateway) ───
   security:
@@ -49,6 +72,7 @@ services:
       KEYCLOAK_REALM: multishield
       KEYCLOAK_CLIENT_ID: zta-gateway
       BANKING_BACKEND_URL: http://banking:3001
+      ML_SERVICE_URL: http://ml-service:8000
       JWT_SECRET: multishield-zta-secret-key-prod
       ALLOWED_IPS: "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
       ALLOWED_COUNTRIES: "IN,US,GB"
@@ -56,6 +80,8 @@ services:
       - "3002:3002"
     depends_on:
       keycloak:
+        condition: service_healthy
+      ml-service:
         condition: service_healthy
     networks:
       - multishield-network

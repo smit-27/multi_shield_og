@@ -14,7 +14,8 @@ const router = express.Router();
 const { locationKillSwitch, timeConstraintMiddleware } = require('../middleware/contextVerifier');
 const { requireStepUp } = require('../middleware/stepUpAuth');
 const { forwardToBanking } = require('../middleware/ztaProxy');
-const { analyzeRisk, analyzeRiskWithML } = require('../engine/riskEngine');
+const { analyzeTransactionRisk } = require('../engine/transactionRiskEngine');
+const { analyzeLoginBehaviorRisk } = require('../engine/riskEngine');
 const { makeDecision } = require('../engine/policyEngine');
 const { queryOne, runSql } = require('../db');
 const { logToDashboard } = require('../middleware/dashboardLogger');
@@ -63,14 +64,29 @@ async function analyzeRequestRisk(req, res, next) {
         : ZTA_DEFAULTS.sandboxRiskScore
   };
 
-  // Use ML-enhanced risk analysis with fallback to rule-only
-  let riskResult;
+  // ─── Run both risk engines independently ───
+  // 1. Transaction Risk (hardcoded rules)
+  const txnResult = analyzeTransactionRisk(activity, activePolicies);
+
+  // 2. Login Behavior Risk (ML-based)
+  let loginResult;
   try {
-    riskResult = await analyzeRiskWithML(activity, activePolicies);
+    loginResult = await analyzeLoginBehaviorRisk(activity);
   } catch (err) {
-    console.warn('[Risk Engine] ML analysis failed, falling back to rule-based:', err.message);
-    riskResult = analyzeRisk(activity, activePolicies);
+    console.warn('[Risk Engine] ML login behavior analysis failed, using neutral fallback:', err.message);
+    loginResult = { score: 50, factors: [{ factor: 'ML Login Behavior (Fallback)', detail: 'ML service unavailable — using neutral score', score: 50, maxScore: 100 }], ml_score: 50, ml_explanation: ['fallback'] };
   }
+
+  // 3. Blend scores: 50% Transaction + 50% Login Behavior
+  const blendedScore = Math.min(100, Math.round(0.5 * txnResult.score + 0.5 * loginResult.score));
+  const riskResult = {
+    score: blendedScore,
+    factors: [...txnResult.factors, ...loginResult.factors],
+    transaction_score: txnResult.score,
+    login_behavior_score: loginResult.score,
+    ml_score: loginResult.ml_score,
+    ml_explanation: loginResult.ml_explanation,
+  };
 
   // Add context risk contribution
   riskResult.score = Math.min(100, riskResult.score + (ctx.contextRisk || 0));

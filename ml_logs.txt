@@ -1,0 +1,8 @@
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[ML Service] Loaded ensemble model from /app/models/ensemble_risk_model.pkl
+[ML Service] Loaded feature scaler from /app/models/feature_scaler.pkl
+INFO:     127.0.0.1:45414 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51870 - "GET /health HTTP/1.1" 200 OK
