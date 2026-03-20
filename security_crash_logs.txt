@@ -1,12 +1,10 @@
-✅ Security policies seeded
 🛡️  Security Platform (ZTA Gateway) running on http://localhost:3002
    ZTA Auth:    POST http://localhost:3002/api/zta/login
    Banking:     /api/banking/* → http://localhost:3001/api/*
    MFA:         /api/mfa/*
    Analyze:     POST /api/analyze
    Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: pxtpTvoiGTPBjKoxAAAB
-[ZTA Dashboard] Client connected: -kzFMHr4iIypZ4pHAAAE
+[ZTA Dashboard] Client connected: 3tBdD6B3NWuqTrzyAAAB
 /app/routes/analyze.js:30
   blendedScore = Math.max(blendedScore, loginResult.score % 101);
                ^
@@ -22,8 +20,7 @@ Node.js v20.20.1
    MFA:         /api/mfa/*
    Analyze:     POST /api/analyze
    Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: ARC5Up71LNFA1jziAAAB
-[ZTA Dashboard] Client connected: P_z6PzNnlJKVUyDCAAAD
+[ZTA Dashboard] Client connected: r8jRC4TpaSChsnlhAAAB
 /app/routes/analyze.js:30
   blendedScore = Math.max(blendedScore, loginResult.score % 101);
                ^
@@ -39,8 +36,7 @@ Node.js v20.20.1
    MFA:         /api/mfa/*
    Analyze:     POST /api/analyze
    Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: GCUtvZm-rkxzZWwHAAAB
-[ZTA Dashboard] Client connected: xOCx1BDitL-Uu2RfAAAD
+[ZTA Dashboard] Client connected: V0OAavZFZCCb9tr6AAAB
 /app/routes/analyze.js:30
   blendedScore = Math.max(blendedScore, loginResult.score % 101);
                ^
@@ -56,6 +52,4 @@ Node.js v20.20.1
    MFA:         /api/mfa/*
    Analyze:     POST /api/analyze
    Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: LUPUI9nBGskoG8RUAAAC
-[ZTA Dashboard] Client connected: 2e5YArI5eKv5etTWAAAD
-[ZTA Dashboard] Client disconnected: LUPUI9nBGskoG8RUAAAC
+[ZTA Dashboard] Client connected: hIyzpgh9jat2xz8lAAAB

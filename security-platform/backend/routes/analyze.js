@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
   }
 
   // 3. Blend scores: 50% Transaction + 50% Login Behavior
-  const blendedScore = Math.min(100, txnResult.score);
+  let blendedScore = Math.min(100, txnResult.score);
   blendedScore = Math.max(blendedScore, loginResult.score % 101);
   const allFactors = [...txnResult.factors, ...loginResult.factors];
 
