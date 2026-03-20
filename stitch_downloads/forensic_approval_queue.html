@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MultiShield | Forensic Review Center</title>
+<!-- Tailwind CSS v3 CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="theme-variables">
+    :root {
+      --bg-primary: #0f0b1e;
+      --bg-secondary: #150f28;
+      --bg-card: #1c1533;
+      --bg-card-hover: #241c3e;
+      --bg-input: #17112a;
+      --bg-surface: #1e1738;
+      --border: #2d2548;
+      --border-accent: #3d2d6b;
+      --text-primary: #eae6f5;
+      --text-secondary: #a09bb8;
+      --text-muted: #635d7a;
+      --accent: #7c5cfc;
+      --accent-gradient: linear-gradient(135deg, #7c5cfc 0%, #a855f7 100%);
+      --cyan: #22d3ee;
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      background-image: 
+        linear-gradient(rgba(124, 92, 252, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 92, 252, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .font-mono { font-family: var(--mono); }
+
+    .obsidian-glass {
+      background: rgba(23, 17, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .obsidian-card {
+      background: rgba(23, 17, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-accent);
+      position: relative;
+    }
+
+    .obsidian-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+
+    .active-card-glow {
+      box-shadow: 0 0 20px rgba(124, 92, 252, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4);
+      border-color: var(--accent);
+    }
+
+    .neon-text-cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+    .neon-text-danger { color: var(--danger); text-shadow: 0 0 10px rgba(244, 63, 94, 0.5); }
+    .neon-text-amber { color: var(--warning); text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+
+    .scanline {
+      width: 100%;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0.1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      animation: scan 4s linear infinite;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    @keyframes scan {
+      0% { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    .trust-gauge {
+      stroke-dasharray: 251.2;
+      transition: stroke-dashoffset 1s ease-out;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+<!-- BEGIN: LayoutWrapper -->
+<div class="flex min-h-screen">
+<!-- BEGIN: Sidebar -->
+<aside class="sidebar fixed top-0 left-0 w-[260px] h-screen bg-[#150f28] border-r border-[#2d2548] z-50 flex flex-col">
+<div class="sidebar-logo p-7 border-b border-[#2d2548]">
+<h1 class="flex items-center gap-3 text-lg font-bold tracking-tight text-[#eae6f5]">
+<span class="w-8 h-8 flex items-center justify-center bg-gradient-to-br from-[#7c5cfc] to-[#a855f7] rounded-lg text-white">M</span>
+      MultiShield
+    </h1>
+<p class="text-[10px] text-[#635d7a] uppercase tracking-[2px] mt-1.5 font-medium">Zero Trust Admin</p>
+</div>
+<nav class="sidebar-nav flex-1 p-4 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#a09bb8] text-[13.5px] font-medium hover:bg-[#1c1533] hover:text-[#eae6f5] transition-all" href="#">
+<svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect height="7" width="7" x="3" y="3"></rect><rect height="7" width="7" x="14" y="3"></rect><rect height="7" width="7" x="14" y="14"></rect><rect height="7" width="7" x="3" y="14"></rect></svg>
+      Dashboard
+    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded bg-[#7c5cfc1f] text-[#7c5cfc] text-[13.5px] font-bold border-l-4 border-[#7c5cfc]" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      Review Center
+      <span class="ml-auto bg-[#f43f5e] text-white text-[10px] px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#a09bb8] text-[13.5px] font-medium hover:bg-[#1c1533] hover:text-[#eae6f5] transition-all" href="#">
+<svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      Identities
+    </a>
+</nav>
+<div class="sidebar-footer p-5 border-top border-[#2d2548]">
+<div class="flex items-center gap-2 text-[12px] text-[#10b981] font-medium">
+<div class="w-2 h-2 bg-[#10b981] rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></div>
+      SOC Online
+    </div>
+<p class="text-[11px] text-[#635d7a] mt-1">v2.4.0-Obsidian</p>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content -->
+<main class="ml-[260px] flex-1 p-9 relative">
+<!-- Header Section -->
+<header class="mb-8 flex justify-between items-end">
+<div data-purpose="page-title">
+<h2 class="text-3xl font-bold tracking-tight text-[#eae6f5]">Forensic Review Center</h2>
+<p class="text-sm text-[#a09bb8] mt-1 italic font-medium">Resolution required for high-risk escalated privilege requests.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-5 py-2.5 bg-[#1c1533] border border-[#2d2548] text-[#a09bb8] text-[11px] font-bold uppercase tracking-widest rounded hover:bg-[#241c3e] transition-colors">
+        History
+      </button>
+<button class="px-5 py-2.5 bg-[#7c5cfc] text-white text-[11px] font-bold uppercase tracking-widest rounded hover:bg-[#6344e0] shadow-lg shadow-[#7c5cfc33] transition-colors">
+        Refresh Queue
+      </button>
+</div>
+</header>
+<!-- BEGIN: KPI Grid (Matched Styling from SCREEN_6) -->
+<section class="grid grid-cols-3 gap-6 mb-8">
+<div class="obsidian-card p-6 rounded-xl border-l-4 border-l-[#f43f5e]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Queue Priority</p>
+<span class="px-2 py-0.5 rounded bg-[#f43f5e1a] text-[#f43f5e] text-[10px] font-mono font-bold">CRITICAL</span>
+</div>
+<h3 class="text-4xl font-mono font-bold mt-2 neon-text-danger">03</h3>
+<p class="text-xs text-[#635d7a] mt-2 italic">Active forensic escalations</p>
+</div>
+<div class="obsidian-card p-6 rounded-xl border-l-4 border-l-[#22d3ee]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Review Velocity</p>
+<span class="px-2 py-0.5 rounded bg-[#22d3ee1a] text-[#22d3ee] text-[10px] font-mono font-bold">OPTIMAL</span>
+</div>
+<h3 class="text-4xl font-mono font-bold mt-2 neon-text-cyan">4.2<span class="text-lg">m</span></h3>
+<p class="text-xs text-[#635d7a] mt-2 italic">Avg. resolution time</p>
+</div>
+<div class="obsidian-card p-6 rounded-xl border-l-4 border-l-[#f59e0b]">
+<div class="flex justify-between items-start">
+<p class="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider">Aggregated Risk</p>
+<div class="flex gap-1">
+<div class="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
+<div class="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
+<div class="w-1 h-3 bg-[#635d7a] rounded-full"></div>
+</div>
+</div>
+<h3 class="text-4xl font-mono font-bold mt-2 neon-text-amber">62.8</h3>
+<p class="text-xs text-[#635d7a] mt-2 italic">Composite session threat index</p>
+</div>
+</section>
+<!-- BEGIN: Review Grid -->
+<div class="grid grid-cols-12 gap-8 items-start">
+<!-- LEFT COLUMN: Selected Case Detailed Analysis -->
+<section class="col-span-8 flex flex-col gap-6">
+<!-- Case Header & Trust Score -->
+<div class="obsidian-glass rounded-xl p-6 relative overflow-hidden">
+<div class="scanline"></div>
+<div class="flex justify-between items-start relative z-20">
+<div class="flex gap-5">
+<div class="w-16 h-16 rounded bg-[#1c1533] border border-[#3d2d6b] flex items-center justify-center text-[#7c5cfc] font-bold text-2xl shadow-inner">
+              JD
+            </div>
+<div>
+<h3 class="text-2xl font-bold text-white leading-tight">Jane Doe</h3>
+<p class="text-[#a09bb8] text-sm font-mono mt-1 font-medium">Senior DevOps Engineer • ID: #4401-X</p>
+<div class="flex gap-2 mt-4">
+<span class="bg-[#f43f5e1a] text-[#f43f5e] border border-[#f43f5e33] text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">Critical Escalation</span>
+<span class="bg-[#22d3ee1a] text-[#22d3ee] border border-[#22d3ee33] text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider font-mono">IP: 192.168.1.104</span>
+</div>
+</div>
+</div>
+<!-- Trust Score Visualization -->
+<div class="text-center">
+<div class="relative w-24 h-24 mx-auto">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-[#2d2548]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-width="6"></circle>
+<circle class="trust-gauge text-[#f59e0b] drop-shadow-[0_0_10px_#f59e0b]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="100.48" stroke-linecap="round" stroke-width="6"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-bold font-mono text-white">60</span>
+<span class="text-[9px] text-[#635d7a] uppercase font-bold tracking-tighter">Trust</span>
+</div>
+</div>
+<p class="text-[10px] text-[#f59e0b] font-bold uppercase tracking-widest mt-2">At-Risk State</p>
+</div>
+</div>
+</div>
+<!-- Side-by-Side Comparison: Forensic Audit View -->
+<div class="grid grid-cols-2 gap-6">
+<!-- Baseline Behavior (Normal) -->
+<div class="obsidian-glass rounded-xl overflow-hidden border-t-2 border-[#10b981]">
+<div class="px-5 py-3 border-b border-[#2d2548] bg-[#10b9810a] flex items-center justify-between">
+<h4 class="text-[11px] font-bold text-[#10b981] uppercase tracking-[2px] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
+              Verified Baseline
+            </h4>
+<span class="text-[9px] font-mono text-[#635d7a]">REF: HISTORY_DB</span>
+</div>
+<div class="p-5 space-y-4 font-mono text-xs">
+<div class="flex flex-col gap-1.5 p-3 rounded bg-[#0f0b1e44] border border-[#2d254833]">
+<span class="text-[9px] text-[#635d7a] font-bold uppercase">Work Hours</span>
+<span class="text-[#a09bb8]">09:00 - 18:00 EST</span>
+</div>
+<div class="flex flex-col gap-1.5 p-3 rounded bg-[#0f0b1e44] border border-[#2d254833]">
+<span class="text-[9px] text-[#635d7a] font-bold uppercase">Geolocation</span>
+<span class="text-[#a09bb8]">NYC Hub (Verified Node)</span>
+</div>
+<div class="flex flex-col gap-1.5 p-3 rounded bg-[#0f0b1e44] border border-[#2d254833]">
+<span class="text-[9px] text-[#635d7a] font-bold uppercase">Privilege Scope</span>
+<span class="text-[#a09bb8]">K8s Staging Admin</span>
+</div>
+</div>
+</div>
+<!-- Anomalous Request (Threat) -->
+<div class="obsidian-glass rounded-xl overflow-hidden border-t-2 border-[#f43f5e]">
+<div class="px-5 py-3 border-b border-[#2d2548] bg-[#f43f5e0a] flex items-center justify-between">
+<h4 class="text-[11px] font-bold text-[#f43f5e] uppercase tracking-[2px] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#f43f5e] animate-pulse"></span>
+              Anomalous Delta
+            </h4>
+<span class="text-[9px] font-mono text-[#f43f5e] font-bold">DELTA: CRITICAL</span>
+</div>
+<div class="p-5 space-y-4 font-mono text-xs">
+<div class="flex flex-col gap-1.5 p-3 rounded bg-[#f43f5e11] border border-[#f43f5e22]">
+<span class="text-[9px] text-[#f43f5e] font-bold uppercase">Time Drift</span>
+<span class="text-white font-bold">02:44 EST (+8h Anomaly)</span>
+</div>
+<div class="flex flex-col gap-1.5 p-3 rounded bg-[#f43f5e11] border border-[#f43f5e22]">
+<span class="text-[9px] text-[#f43f5e] font-bold uppercase">Resource Delta</span>
+<span class="text-white font-bold">DROP TABLE Production</span>
+</div>
+<div class="flex flex-col gap-1.5 p-3 rounded bg-[#f43f5e11] border border-[#f43f5e22]">
+<span class="text-[9px] text-[#f43f5e] font-bold uppercase">Access Path</span>
+<span class="text-white font-bold">MFA-6 Override Attempt</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Forensic Audit Trail Snippet -->
+<div class="obsidian-glass rounded-xl overflow-hidden border border-[#2d2548]">
+<div class="bg-[#1c1533] px-5 py-3 border-b border-[#2d2548] flex justify-between items-center">
+<h4 class="text-[11px] font-bold text-[#a09bb8] uppercase tracking-[2px]">Forensic Event Stream</h4>
+<span class="text-[10px] font-mono text-[#635d7a]">SESSION_ID: 882-AFZ-Ω</span>
+</div>
+<div class="p-4 space-y-2 font-mono text-[11px]">
+<div class="flex gap-4 items-center p-2 rounded hover:bg-[#241c3e] transition-colors">
+<span class="text-[#635d7a] w-16">02:38:12</span>
+<span class="text-[#10b981] font-bold w-32">[AUTH_SUCCESS]</span>
+<span class="text-[#eae6f5]">VPN Tunnel established: WireGuard-Node-X</span>
+</div>
+<div class="flex gap-4 items-center p-2 rounded hover:bg-[#241c3e] transition-colors">
+<span class="text-[#635d7a] w-16">02:39:45</span>
+<span class="text-[#22d3ee] font-bold w-32">[PORT_SCAN]</span>
+<span class="text-[#eae6f5]">Horizontal probe: DB_CLUSTER_PRD</span>
+</div>
+<div class="flex gap-4 items-center p-2 rounded hover:bg-[#241c3e] transition-colors">
+<span class="text-[#635d7a] w-16">02:40:22</span>
+<span class="text-[#f59e0b] font-bold w-32">[ELEVATION]</span>
+<span class="text-[#eae6f5]">Sudo request: DB_ADMIN access</span>
+</div>
+<div class="flex gap-4 items-center p-2 rounded bg-[#f43f5e1a] border border-[#f43f5e22]">
+<span class="text-[#f43f5e] w-16">02:44:01</span>
+<span class="text-[#f43f5e] font-bold w-32">[SQL_BLOCK]</span>
+<span class="text-white font-bold">Heuristic pattern match: DROP TABLE detected</span>
+</div>
+<div class="flex gap-4 items-center p-2 rounded italic opacity-70">
+<span class="text-[#635d7a] w-16">02:44:05</span>
+<span class="text-[#7c5cfc] font-bold w-32">[HITL_PENDING]</span>
+<span class="text-[#eae6f5]">System isolation engaged. Awaiting Admin Review.</span>
+</div>
+</div>
+</div>
+<!-- Final Decision Actions -->
+<div class="grid grid-cols-3 gap-4 pt-2">
+<button class="btn-action bg-transparent border border-[#2d2548] text-[#a09bb8] hover:bg-[#241c3e] hover:text-white">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          Request Info
+        </button>
+<button class="btn-action bg-[#f43f5e1a] border border-[#f43f5e44] text-[#f43f5e] hover:bg-[#f43f5e] hover:text-white shadow-lg shadow-[#f43f5e11]">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" x2="19.07" y1="4.93" y2="19.07"></line></svg>
+          Permanent Ban
+        </button>
+<button class="btn-action bg-[#7c5cfc] text-white hover:bg-[#6344e0] shadow-lg shadow-[#7c5cfc33]">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Approve Once
+        </button>
+</div>
+</section>
+<!-- RIGHT COLUMN: Approval Queue List -->
+<aside class="col-span-4 flex flex-col gap-5 sticky top-9">
+<div class="flex items-center justify-between mb-1">
+<h4 class="text-[11px] font-bold text-[#635d7a] uppercase tracking-[2px]">Queue Activity (3)</h4>
+<span class="text-[9px] text-[#22d3ee] font-bold font-mono animate-pulse">LIVE REFRESH</span>
+</div>
+<!-- Case 1: ACTIVE/SELECTED (With subtle glow when "expanded/selected") -->
+<div class="obsidian-card active-card-glow rounded-xl p-5 cursor-pointer transition-all border-[#7c5cfc]/60">
+<div class="absolute top-0 right-0 p-3">
+<div class="w-2.5 h-2.5 bg-[#7c5cfc] rounded-full animate-ping"></div>
+</div>
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded bg-[#1c1533] border border-[#7c5cfc44] flex items-center justify-center text-[#7c5cfc] font-bold shadow-inner">JD</div>
+<div>
+<p class="text-[15px] font-bold text-white">Jane Doe</p>
+<p class="text-[11px] text-[#a09bb8] font-mono">REC: 02:44 EST</p>
+</div>
+</div>
+<p class="text-xs text-[#eae6f5] mb-4 line-clamp-2 italic bg-[#0f0b1e88] p-3 rounded border border-[#2d2548] font-medium leading-relaxed">
+          "URGENT: Fixing production ledger corruption after sync error."
+        </p>
+<div class="flex justify-between items-center">
+<span class="text-[9px] font-bold text-[#f43f5e] bg-[#f43f5e1a] px-2.5 py-1 rounded border border-[#f43f5e33] uppercase tracking-wider">Critical</span>
+<span class="text-[11px] text-[#635d7a] font-mono">#4401-X</span>
+</div>
+</div>
+<!-- Case 2 -->
+<div class="obsidian-card rounded-xl p-5 border-[#2d2548] hover:border-[#3d2d6b] cursor-pointer transition-all group">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded bg-[#1c1533] border border-[#2d2548] flex items-center justify-center text-[#a09bb8] group-hover:text-[#7c5cfc] font-bold transition-colors">MS</div>
+<div>
+<p class="text-[15px] font-bold text-[#a09bb8] group-hover:text-white transition-colors">Marcus Smith</p>
+<p class="text-[11px] text-[#635d7a] font-mono">REC: 01:15 EST</p>
+</div>
+</div>
+<p class="text-xs text-[#635d7a] mb-4 line-clamp-2 italic font-medium leading-relaxed group-hover:text-[#a09bb8]">
+          "Deploying v2.4.1 hotfix to AWS-East-1 instance for..."
+        </p>
+<div class="flex justify-between items-center">
+<span class="text-[9px] font-bold text-[#22d3ee] bg-[#22d3ee1a] px-2.5 py-1 rounded border border-[#22d3ee33] uppercase tracking-wider">High Risk</span>
+<span class="text-[11px] text-[#635d7a] font-mono">#4209-B</span>
+</div>
+</div>
+<!-- Case 3 -->
+<div class="obsidian-card rounded-xl p-5 border-[#2d2548] hover:border-[#3d2d6b] cursor-pointer transition-all group">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded bg-[#1c1533] border border-[#2d2548] flex items-center justify-center text-[#a09bb8] group-hover:text-[#7c5cfc] font-bold transition-colors">RL</div>
+<div>
+<p class="text-[15px] font-bold text-[#a09bb8] group-hover:text-white transition-colors">Riley Lane</p>
+<p class="text-[11px] text-[#635d7a] font-mono">REC: 00:42 EST</p>
+</div>
+</div>
+<p class="text-xs text-[#635d7a] mb-4 line-clamp-2 italic font-medium leading-relaxed group-hover:text-[#a09bb8]">
+          "Root access needed for logs retrieval on archived node..."
+        </p>
+<div class="flex justify-between items-center">
+<span class="text-[9px] font-bold text-[#22d3ee] bg-[#22d3ee1a] px-2.5 py-1 rounded border border-[#22d3ee33] uppercase tracking-wider font-medium">Medium</span>
+<span class="text-[11px] text-[#635d7a] font-mono">#3991-A</span>
+</div>
+</div>
+<!-- Footer Efficiency Stats (Matched Styling from SCREEN_6 Sidebar) -->
+<div class="mt-4 p-6 obsidian-card rounded-2xl bg-[#0a0515]/50 border-t-2 border-[#7c5cfc]">
+<div class="flex justify-between text-[11px] font-bold uppercase tracking-[2px] text-[#a09bb8] mb-4">
+<span>Weekly Accuracy</span>
+<span class="text-[#10b981] font-mono">94.2%</span>
+</div>
+<div class="w-full bg-[#1c1533] h-2 rounded-full overflow-hidden border border-[#2d2548]">
+<div class="bg-gradient-to-r from-[#7c5cfc] to-[#10b981] h-full w-[94.2%] shadow-[0_0_10px_rgba(16,185,129,0.3)]"></div>
+</div>
+<p class="text-[10px] text-[#635d7a] mt-3 italic font-medium leading-tight">Last 7 days performance metrics across SOC Tier-1 team.</p>
+</div>
+</aside>
+</div>
+<!-- END: Review Grid -->
+</main>
+<!-- END: Main Content -->
+</div>
+<!-- END: LayoutWrapper -->
+</body></html>

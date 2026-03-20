@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import Admin from './pages/Admin'
 import Monitoring from './pages/Monitoring'
 import Incidents from './pages/Incidents'
+import PolicyOverrides from './pages/PolicyOverrides'
+import PredictiveIsolation from './pages/PredictiveIsolation'
+import ForensicAudit from './pages/ForensicAudit'
 import ExplainableAI from './pages/ExplainableAI'
 import MfaChallenge from './pages/MfaChallenge'
 import ApprovalQueue from './pages/ApprovalQueue'
@@ -53,9 +56,11 @@ function Sidebar() {
   const items = [
     { path: '/admin', label: 'Admin Dashboard', icon: 'settings' },
     { path: '/monitoring', label: 'Live Monitoring', icon: 'monitoring' },
+    { path: '/predictive-isolation', label: 'Predictive Isolation', icon: 'shield' },
+    { path: '/forensic-audit', label: 'Forensic Audit', icon: 'ai' },
     { path: '/incidents', label: 'Incident Management', icon: 'incident' },
     { path: '/approvals', label: 'Approval Queue', icon: 'check', badge: pendingCount },
-    { path: '/explainable-ai', label: 'Explainable AI', icon: 'ai' },
+    { path: '/policy-overrides', label: 'Policy Overrides', icon: 'settings' },
   ]
 
   return (
@@ -111,8 +116,11 @@ export default function App() {
                 <Route path="/monitoring" element={<Monitoring />} />
                 <Route path="/incidents" element={<Incidents />} />
                 <Route path="/approvals" element={<ApprovalQueue />} />
+                <Route path="/policy-overrides" element={<PolicyOverrides />} />
+                <Route path="/predictive-isolation" element={<PredictiveIsolation />} />
+                <Route path="/forensic-audit" element={<ForensicAudit />} />
                 <Route path="/explainable-ai" element={<ExplainableAI />} />
-                <Route path="*" element={<Navigate to="/monitoring" />} />
+                <Route path="*" element={<Navigate to="/forensic-audit" />} />
               </Routes>
             </main>
           </div>
