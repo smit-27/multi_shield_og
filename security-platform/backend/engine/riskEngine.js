@@ -1,93 +1,70 @@
 /**
- * AI Risk Engine — scores activity 0-100 using weighted factors
+ * Login Behavior Risk Engine — ML-based behavioral risk scoring
+ * 
+ * Uses the ML microservice to evaluate user login behavior patterns.
+ * The ML model expects these 9 features:
+ *   - avg_login_hour, num_devices, file_access_count, usb_activity,
+ *     email_count, late_login, multi_device, large_file_activity, high_usb_usage
+ * 
+ * This engine is SEPARATE from the Transaction Risk Engine (transactionRiskEngine.js).
+ * - Login Behavior → ML model (this file)
+ * - Financial Transactions → Hardcoded rules (transactionRiskEngine.js)
  */
-const { queryAll, queryOne } = require('../db');
+const { getMLRiskScore } = require('./mlClient');
 
-function getPolicies() {
-  const rows = queryAll('SELECT * FROM policies WHERE enabled = 1');
-  const map = {};
-  rows.forEach(r => { map[r.rule_type] = r.threshold; });
-  return map;
-}
-
-function analyzeRisk(activity, overrides = {}) {
-  const policies = getPolicies();
-  const factors = [];
-  let totalScore = 0;
-
-  // Factor 1: Amount anomaly (0-75)
-  if (activity.amount > 0) {
-    // Override maxAmount if explicitly passed globally
-    const maxAmount = overrides.amountLimit != null ? overrides.amountLimit : (policies.max_amount || 500000);
-    const highValue = overrides.amountLimit != null ? Math.floor(overrides.amountLimit * 0.2) : (policies.high_value || 100000); // Scale highValue down proportionally if overriding
-
-    if (activity.amount > maxAmount) {
-      // Exceeding max limit guarantees at least MFA (65 points)
-      totalScore += 65;
-      factors.push({ factor: 'Transaction Amount Exceeds Limit', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} exceeds maximum limit of ₹${maxAmount.toLocaleString('en-IN')}`, score: 65, maxScore: 75 });
-    } else if (activity.amount > highValue) {
-      // High value guarantees at least Justification (40-60 points)
-      const ratio = (activity.amount - highValue) / (maxAmount - highValue);
-      const pts = Math.round(40 + ratio * 20); // 40 to 60 points
-      totalScore += pts;
-      factors.push({ factor: 'High-Value Transaction', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} exceeds high-value threshold`, score: pts, maxScore: 75 });
-    } else if (activity.amount > highValue * 0.5) {
-      const pts = Math.round((activity.amount / highValue) * 20); // up to 20 points
-      totalScore += pts;
-      factors.push({ factor: 'Moderate Transaction Amount', detail: `₹${Number(activity.amount).toLocaleString('en-IN')} is a notable amount`, score: pts, maxScore: 75 });
-    }
-  }
-
-  // Factor 2: Time-of-day anomaly (0-20)
+/**
+ * Derive ML behavioral features from activity/login context.
+ * In production these would come from a user behavior analytics store;
+ * here we derive them from the available activity data.
+ * 
+ * @param {Object} activity - Activity context from request
+ * @returns {Object} 9-feature vector for the ML model
+ */
+function deriveMLFeatures(activity) {
   const hour = activity.hour != null ? activity.hour : new Date().getHours();
-  const hoursStart = policies.hours_start || 8;
-  const hoursEnd = policies.hours_end || 20;
-
-  if (hour < hoursStart || hour >= hoursEnd) {
-    totalScore += 20;
-    factors.push({ factor: 'Activity Outside Business Hours', detail: `Activity at ${hour}:00 is outside allowed hours (${hoursStart}:00-${hoursEnd}:00)`, score: 20, maxScore: 20 });
-  } else if (hour < hoursStart + 1 || hour >= hoursEnd - 1) {
-    totalScore += 8;
-    factors.push({ factor: 'Activity Near Business Hours Boundary', detail: `Activity at ${hour}:00 is near boundary`, score: 8, maxScore: 20 });
-  }
-
-  // Factor 3: Unknown device (0-15)
-  const knownDevices = ['internal workstation', 'office terminal', 'branch terminal'];
   const device = (activity.device || '').toLowerCase();
-  if (!knownDevices.some(d => device.includes(d)) && device) {
-    totalScore += 15;
-    factors.push({ factor: 'Unknown Device Detected', detail: `Device "${activity.device}" is not authorized`, score: 15, maxScore: 15 });
-  }
+  const amount = activity.amount || 0;
 
-  // Factor 4: Bulk data operation (0-15)
-  if (['bulk_data_export', 'export', 'bulk_download'].includes(activity.action)) {
-    totalScore += 15;
-    factors.push({ factor: 'Bulk Data Export Detected', detail: `${activity.action} triggers data exfiltration monitoring`, score: 15, maxScore: 15 });
-  }
-
-  // Factor 5: Role-action mismatch (0-10)
-  const rolePerms = {
-    'Treasury Operator': ['withdraw', 'transfer', 'view_balance', 'approve_transaction'],
-    'Loan Officer': ['loan_approval', 'loan_rejection', 'view_loans'],
-    'Database Admin': ['bulk_data_export', 'view_customers', 'export']
+  return {
+    avg_login_hour: hour,
+    num_devices: device ? 2 : 1,
+    file_access_count: ['bulk_data_export', 'export', 'bulk_download'].includes(activity.action) ? 15 : 3,
+    usb_activity: amount > 500000 ? 8 : (amount > 100000 ? 4 : 1),
+    email_count: 5,
+    late_login: (hour < 8 || hour >= 20) ? 1 : 0,
+    multi_device: device && !['internal workstation', 'office terminal', 'branch terminal'].some(d => device.includes(d)) ? 1 : 0,
+    large_file_activity: ['bulk_data_export', 'export'].includes(activity.action) ? 1 : 0,
+    high_usb_usage: amount > 500000 ? 1 : 0,
   };
-  const allowed = rolePerms[activity.role] || [];
-  if (activity.role && !allowed.includes(activity.action)) {
-    totalScore += 10;
-    factors.push({ factor: 'Role-Action Mismatch', detail: `"${activity.role}" performing "${activity.action}" is outside normal scope`, score: 10, maxScore: 10 });
-  }
-
-  // Factor 6: Frequency anomaly (0-10)
-  const recentCount = queryOne("SELECT COUNT(*) as count FROM activities WHERE user_id = ? AND action = ? AND created_at > datetime('now', '-1 hour')", [activity.user_id, activity.action])?.count || 0;
-  if (recentCount > 5) {
-    totalScore += 10;
-    factors.push({ factor: 'High Frequency Activity', detail: `${recentCount} similar actions in last hour`, score: 10, maxScore: 10 });
-  } else if (recentCount > 3) {
-    totalScore += 5;
-    factors.push({ factor: 'Elevated Activity Frequency', detail: `${recentCount} similar actions in last hour`, score: 5, maxScore: 10 });
-  }
-
-  return { score: Math.min(100, totalScore), factors };
 }
 
-module.exports = { analyzeRisk };
+/**
+ * Analyze login behavior risk using the ML microservice.
+ * Returns the ML behavioral risk score and explanation.
+ * 
+ * @param {Object} activity - Activity context
+ * @returns {Promise<{ score: number, factors: Array, ml_score: number, ml_explanation: string[] }>}
+ */
+async function analyzeLoginBehaviorRisk(activity) {
+  const mlFeatures = deriveMLFeatures(activity);
+  const mlResult = await getMLRiskScore(mlFeatures);
+
+  const mlExplanationText = mlResult.explanation.join(', ');
+  const factors = [
+    {
+      factor: 'ML Login Behavior Analysis',
+      detail: `ML model scored ${mlResult.risk_score}/100 — key factors: ${mlExplanationText}`,
+      score: mlResult.risk_score,
+      maxScore: 100,
+    },
+  ];
+
+  return {
+    score: mlResult.risk_score,
+    factors,
+    ml_score: mlResult.risk_score,
+    ml_explanation: mlResult.explanation,
+  };
+}
+
+module.exports = { analyzeLoginBehaviorRisk, deriveMLFeatures };

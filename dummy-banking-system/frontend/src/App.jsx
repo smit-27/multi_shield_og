@@ -6,7 +6,7 @@ import Treasury from './pages/Treasury'
 import Loans from './pages/Loans'
 import Customers from './pages/Customers'
 
-const API = 'http://localhost:3001'
+const API = 'http://localhost:3002'
 
 export const AuthContext = createContext(null)
 
@@ -18,6 +18,21 @@ export function BankLogo({ size = 48 }) {
       🏦
     </div>
   )
+}
+
+/**
+ * Remap paths so that banking operations go through the ZTA gateway:
+ *   /api/auth/login  → /api/zta/login
+ *   /api/auth/me     → /api/zta/session
+ *   /api/auth/logout → /api/zta/logout
+ *   /api/*           → /api/banking/* (proxied through ZTA middleware)
+ */
+function remapPath(path) {
+  if (path === '/api/auth/login') return '/api/zta/login'
+  if (path === '/api/auth/me') return '/api/zta/session'
+  if (path === '/api/auth/logout') return '/api/zta/logout'
+  if (path.startsWith('/api/')) return '/api/banking' + path.slice(4)
+  return path
 }
 
 export async function apiFetch(path, options = {}) {
@@ -35,7 +50,8 @@ export async function apiFetch(path, options = {}) {
     } catch(e) {}
   }
 
-  const res = await fetch(`${API}${path}`, {
+  const mappedPath = remapPath(path)
+  const res = await fetch(`${API}${mappedPath}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -156,7 +172,8 @@ export default function App() {
       method: 'POST',
       body: JSON.stringify({ username, password })
     })
-    localStorage.setItem('token', data.token)
+    // ZTA gateway returns access_token; banking backend returns token
+    localStorage.setItem('token', data.access_token || data.token)
     setUser(data.user)
     return data
   }
