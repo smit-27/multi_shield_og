@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth, BankLogo } from '../App'
+import { User, Lock } from 'lucide-react'
 
 export default function Login() {
   const { login } = useAuth()
@@ -56,7 +57,7 @@ export default function Login() {
               <div className="v2-form-group">
                 <label>Username</label>
                 <div className="v2-input-wrapper">
-                  <span className="v2-input-icon">👤</span>
+                  <span className="v2-input-icon"><User size={16} /></span>
                   <input 
                     type="text" 
                     value={username} 
@@ -70,7 +71,7 @@ export default function Login() {
               <div className="v2-form-group">
                 <label>Password</label>
                 <div className="v2-input-wrapper">
-                  <span className="v2-input-icon">🔒</span>
+                  <span className="v2-input-icon"><Lock size={16} /></span>
                   <input 
                     type="password" 
                     value={password} 

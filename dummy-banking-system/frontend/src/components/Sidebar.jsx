@@ -1,10 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, BankLogo } from '../App'
+import { Landmark, FileText, Users, ArrowDownToLine } from 'lucide-react'
 
 const navItems = [
-  { path: '/treasury', label: 'Treasury Operations', icon: '🏛️' },
-  { path: '/loans', label: 'Loan Management', icon: '📋' },
-  { path: '/customers', label: 'Customer Database', icon: '👥' },
+  { path: '/customers', label: 'Customer Database', icon: Users },
+  { path: '/treasury', label: 'Treasury Operations', icon: Landmark },
+  { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
+  { path: '/loans', label: 'Loan Management', icon: FileText },
 ]
 
 export default function Sidebar() {
@@ -20,16 +22,19 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map(item => (
-          <button
-            key={item.path}
-            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-            onClick={() => navigate(item.path)}
-          >
-            <span className="icon">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
+        {navItems.map(item => {
+          const IconComponent = item.icon
+          return (
+            <button
+              key={item.path}
+              className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+              onClick={() => navigate(item.path)}
+            >
+              <span className="icon"><IconComponent size={18} /></span>
+              {item.label}
+            </button>
+          )
+        })}
       </nav>
 
       <div className="sidebar-footer-info">
