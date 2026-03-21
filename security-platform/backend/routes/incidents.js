@@ -5,14 +5,51 @@ const { logAuditEvent } = require('../security/auditLogger');
 
 router.get('/', (req, res) => {
   const { status, limit = 50 } = req.query;
-  let query = 'SELECT * FROM incidents WHERE 1=1';
-  const params = [];
-  if (status) { query += ' AND status = ?'; params.push(status); }
-  query += ' ORDER BY created_at DESC LIMIT ?';
-  params.push(parseInt(limit));
-  const incidents = queryAll(query, params);
-  incidents.forEach(i => { try { i.factors = JSON.parse(i.factors); } catch { i.factors = []; } });
-  res.json({ incidents });
+  
+  let query = `
+    SELECT 
+      i.*,
+      a.status as approval_status,
+      a.user_message as approvalReason,
+      a.id as approval_request_id
+    FROM incidents i
+    LEFT JOIN approval_requests a ON i.id = a.incident_id
+    ORDER BY i.created_at DESC
+  `;
+  
+  const rawIncidents = queryAll(query);
+  
+  let incidents = rawIncidents.map(row => {
+    let unifiedStatus = row.status; // defaults to 'open' or 'resolved'
+    if (row.approval_status === 'pending') unifiedStatus = 'pending_approval';
+    else if (row.approval_status === 'approved') unifiedStatus = 'approved';
+    else if (row.approval_status === 'denied') unifiedStatus = 'rejected';
+
+    let factors = [];
+    try { factors = JSON.parse(row.factors); } catch { factors = []; }
+
+    return {
+      id: row.id,
+      title: `${row.action} Flagged (${row.decision})`,
+      description: row.reason || `Risk score of ${row.risk_score} triggered policy check.`,
+      severity: row.risk_score >= 80 ? 'high' : row.risk_score >= 40 ? 'medium' : 'low',
+      status: unifiedStatus,
+      requestedBy: row.user_id,
+      assignedTo: 'Admin Team',
+      createdAt: row.created_at,
+      updatedAt: row.resolved_at || row.created_at,
+      approvalReason: row.approvalReason || null,
+      requestedAction: row.action,
+      riskScore: row.risk_score,
+      factors: factors
+    };
+  });
+
+  if (status) {
+    incidents = incidents.filter(i => i.status === status);
+  }
+  
+  res.json({ incidents: incidents.slice(0, parseInt(limit)) });
 });
 
 router.get('/stats', (req, res) => {
@@ -47,12 +84,27 @@ router.post('/:id/resolve', (req, res) => {
 router.post('/:id/approve', (req, res) => {
   const { approved_by = 'admin' } = req.body;
   if (!queryOne('SELECT * FROM incidents WHERE id = ?', [req.params.id])) return res.status(404).json({ error: 'Not found' });
+  
   runSql("UPDATE incidents SET status='approved',resolution='Approved by admin override',resolved_by=?,resolved_at=datetime('now') WHERE id=?",
+    [approved_by, req.params.id]);
+  runSql("UPDATE approval_requests SET status='approved',admin_response='Approved by admin override',resolved_by=?,resolved_at=datetime('now') WHERE incident_id=?", 
     [approved_by, req.params.id]);
   logAuditEvent('incident_approved',
     { incident_id: req.params.id },
     approved_by);
   res.json({ success: true, message: 'Action approved' });
+});
+
+router.post('/:id/reject', (req, res) => {
+  const { rejected_by = 'admin', reason = 'Rejected by admin' } = req.body;
+  const incident = queryOne('SELECT * FROM incidents WHERE id = ?', [req.params.id]);
+  if (!incident) return res.status(404).json({ error: 'Not found' });
+  
+  runSql("UPDATE incidents SET status='rejected',resolution=?,resolved_by=?,resolved_at=datetime('now') WHERE id=?", [reason, rejected_by, req.params.id]);
+  runSql("UPDATE approval_requests SET status='denied',admin_response=?,resolved_by=?,resolved_at=datetime('now') WHERE incident_id=?", [reason, rejected_by, req.params.id]);
+  runSql("INSERT INTO audit_log (event_type,details,performed_by) VALUES ('incident_rejected',?,?)", [JSON.stringify({ incident_id: req.params.id }), rejected_by]);
+  
+  res.json({ success: true, message: 'Action rejected' });
 });
 
 module.exports = router;

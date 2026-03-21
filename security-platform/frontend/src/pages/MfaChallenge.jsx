@@ -25,6 +25,16 @@ export default function MfaChallenge() {
   const [failed, setFailed] = useState(false)
   const [failData, setFailData] = useState(null)
   
+  // Auto-close window when completed
+  useEffect(() => {
+    if (completed) {
+      const timer = setTimeout(() => {
+        window.close()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [completed])
+  
   // Face Recognition State
   const [modelsLoaded, setModelsLoaded] = useState(false)
   const [faceMatcher, setFaceMatcher] = useState(null)
@@ -296,7 +306,7 @@ export default function MfaChallenge() {
               <div className="mfa-info-row"><span>Risk Score</span><span>{challenge?.risk_score}/100</span></div>
               <div className="mfa-info-row"><span>Status</span><span className="text-success">Verified ✓</span></div>
             </div>
-            <p className="mfa-hint">You can safely close this window and return to the Banking System.</p>
+            <p className="mfa-hint">This window will automatically close in 3 seconds...</p>
           </div>
         </div>
       </div>

@@ -57,6 +57,7 @@ async function start() {
   app.use('/api/activities', require('./routes/activities'));
   app.use('/api/mfa', require('./routes/mfa'));
   app.use('/api/approvals', require('./routes/approvals'));
+  app.use('/api/dashboard', require('./routes/dashboard'));
 
   // ─── Blockchain Audit API ───
   app.use('/api/audit', require('./routes/audit'));
