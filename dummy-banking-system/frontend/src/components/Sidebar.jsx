@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, BankLogo } from '../App'
-import { Landmark, FileText, Users, ArrowDownToLine } from 'lucide-react'
+import { Landmark, FileText, Users, ArrowDownToLine, Lock } from 'lucide-react'
 
 const navItems = [
-  { path: '/customers', label: 'Customer Database', icon: Users },
-  { path: '/treasury', label: 'Treasury Operations', icon: Landmark },
-  { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
-  { path: '/loans', label: 'Loan Management', icon: FileText },
+  { path: '/customers', label: 'Vaulted Profiles', icon: Users },
+  { path: '/treasury', label: 'Treasury Systems', icon: Landmark },
+  { path: '/withdrawals', label: 'Core Transfers', icon: ArrowDownToLine },
+  { path: '/loans', label: 'Loan Gateway', icon: FileText },
 ]
 
 export default function Sidebar() {
@@ -22,6 +22,9 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '12px 20px', fontWeight: '600' }}>
+          Active Vault Sessions
+        </div>
         {navItems.map(item => {
           const IconComponent = item.icon
           return (
@@ -35,6 +38,15 @@ export default function Sidebar() {
             </button>
           )
         })}
+
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '12px 20px', fontWeight: '600', marginTop: '16px' }}>
+          Access Control
+        </div>
+        <button className="nav-item">
+          <span className="icon"><Lock size={18} /></span>
+          Pending Approvals
+          <span style={{ marginLeft: 'auto', background: 'var(--danger)', color: 'white', fontSize: '11px', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>2</span>
+        </button>
       </nav>
 
       <div className="sidebar-footer-info">

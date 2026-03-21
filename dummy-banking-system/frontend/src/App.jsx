@@ -7,7 +7,7 @@ import Loans from './pages/Loans'
 import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
 import Withdrawals from './pages/Withdrawals'
-import { Landmark, Search, Settings, Bell, AlertTriangle, Lock } from 'lucide-react'
+import { Landmark, Search, Settings, Bell, AlertTriangle, Lock, Shield, Server, Activity, X } from 'lucide-react'
 const API = 'http://127.0.0.1:3002'
 
 export const AuthContext = createContext(null)
@@ -80,6 +80,21 @@ function Layout() {
 
   if (!user) return <Navigate to="/login" />
 
+  const [showPamDrawer, setShowPamDrawer] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(7200) // 2 hours
+
+  useEffect(() => {
+    const timer = setInterval(() => setTimeLeft(t => (t > 0 ? t - 1 : 0)), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0')
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')
+    const s = (seconds % 60).toString().padStart(2, '0')
+    return `${h}:${m}:${s}`
+  }
+
   const getPageTitle = () => {
     if (location.pathname === '/treasury') return 'Treasury & Liquidity Portal'
     if (location.pathname === '/loans') return 'Commercial Loan Management'
@@ -89,16 +104,18 @@ function Layout() {
 
   return (
     <div className="layout-root">
-      <div className="top-alert-banner" style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'6px'}}>
-        <AlertTriangle size={14}/> CONFIDENTIAL SYSTEM: All operations are logged and monitored by the Federal Security Council. Unauthorized access is a felony.
+      <div className="top-alert-banner paw-banner">
+        <span className="blinking-dot"></span> SESSION RECORDING ACTIVE
+        <span style={{opacity: 0.5, margin: '0 8px'}}>|</span>
+        <Shield size={14}/> ISOLATED PAW WORKSTATION
       </div>
       
       <div className="secure-info-bar">
-        <span style={{display:'flex', alignItems:'center', gap:'4px'}}><Lock size={12}/> SECURE END-TO-END ENCRYPTION ACTIVE</span>
+        <span style={{display:'flex', alignItems:'center', gap:'4px'}}><Lock size={12}/> JIT ACCESS EXPIRES IN {formatTime(timeLeft)}</span>
         <span>•</span>
-        <span>SESSION: {Math.random().toString(36).substring(7).toUpperCase()}</span>
+        <span>SESSION: {user.session_id || Math.random().toString(36).substring(7).toUpperCase()}</span>
         <span>•</span>
-        <span>WORKSTATION: NODE-IX-{Math.floor(Math.random() * 9000 + 1000)}</span>
+        <span>WORKSTATION: PAW-NODE-{Math.floor(Math.random() * 9000 + 1000)}</span>
       </div>
 
       <header className="main-brand-header">
@@ -126,7 +143,10 @@ function Layout() {
             <span>Terminal Language:</span>
             <select className="language-select"><option>English (US)</option></select>
           </div>
-          <div className="portal-icons">
+          <div className="portal-icons" style={{display:'flex', alignItems:'center'}}>
+            <button className="btn btn-sm btn-outline" style={{display:'flex', alignItems:'center', gap:'6px', background:'#f8f9fa', color:'#1a202c', border:'1px solid #d5dce6', marginRight:'12px'}} onClick={() => setShowPamDrawer(true)}>
+              <Server size={14}/> My PAM Session
+            </button>
             <button className="icon-btn"><Search size={14}/></button>
             <button className="icon-btn"><Settings size={14}/></button>
             <button className="icon-btn"><Bell size={14}/></button>
@@ -152,6 +172,41 @@ function Layout() {
         <span className="float-logo"><Landmark size={14}/></span>
         National Bank of India
       </div>
+
+      {showPamDrawer && (
+        <>
+          <div className="pam-drawer-overlay" onClick={() => setShowPamDrawer(false)}></div>
+          <div className="pam-drawer">
+            <div className="pam-drawer-header">
+              <h3 style={{display:'flex', alignItems:'center', gap:'8px', margin:0, fontSize:'16px'}}><Server size={18}/> Privilege Context</h3>
+              <button className="icon-btn" onClick={() => setShowPamDrawer(false)} style={{background:'transparent', color:'var(--text-secondary)'}}><X size={18}/></button>
+            </div>
+            <div className="pam-drawer-body">
+              <div className="pam-section">
+                <h4><Shield size={14}/> Elevated Access Level</h4>
+                <p>You are currently operating with JEA (Just-Enough-Administration) rights on the banking systems. Access is strictly time-bound and actively recorded.</p>
+              </div>
+              <div className="pam-section">
+                <h4><Lock size={14}/> Active Clearances</h4>
+                <ul className="pam-list">
+                  <li>Customers DB (Read/Write)</li>
+                  <li>Treasury Gateway (Approve)</li>
+                  <li>Loans API (Level 2 Auth)</li>
+                </ul>
+              </div>
+              <div className="pam-section">
+                <h4><Activity size={14}/> Audit Stream</h4>
+                <div className="audit-log">
+                  <div className="audit-item"><span className="dot success"></span> PAW connection verified unconditionally</div>
+                  <div className="audit-item"><span className="dot neutral"></span> Session recording module started</div>
+                  <div className="audit-item"><span className="dot danger"></span> Outbound internet gateways isolated</div>
+                  <div className="audit-item"><span className="dot neutral"></span> Keystroke telemetry engaged</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

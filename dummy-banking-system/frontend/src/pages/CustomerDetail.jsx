@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../App'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
-import { AlertTriangle, ArrowRightLeft, UserCircle, CreditCard, Home, FileText } from 'lucide-react'
+import { AlertTriangle, ArrowRightLeft, UserCircle, CreditCard, Home, FileText, Terminal, LogOut } from 'lucide-react'
+import SessionReplay from '../components/SessionReplay'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -25,6 +26,7 @@ export default function CustomerDetail() {
   const [freezeOverlay, setFreezeOverlay] = useState(null)
   const [justifyModal, setJustifyModal] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
+  const [showReplay, setShowReplay] = useState(false)
 
   const load = async () => {
     try {
@@ -173,7 +175,21 @@ export default function CustomerDetail() {
   const primaryAccount = accounts[0] || {}
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#f4f7f6', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ padding: '8px', backgroundColor: '#1a1a1a', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+
+      {/* PAM Vault Injection Banner */}
+      <div style={{ background: '#000', color: '#0f0', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333', borderBottom: 'none', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', fontFamily: 'monospace' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span className="blinking-dot" style={{ background: '#ff3b30', width: '10px', height: '10px' }} />
+          <strong style={{ color: '#fff', fontSize: '14px' }}>[PAW] SECURE PROXY SESSION</strong>
+          <span style={{ color: '#888', fontSize: '13px' }}>Target: {primaryAccount.id || customer.full_name} | Credentials Auto-Injected</span>
+        </div>
+        <button className="btn btn-sm" style={{ background: 'transparent', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/customers')}>
+          <LogOut size={14}/> Disconnect Session
+        </button>
+      </div>
+
+      <div style={{ padding: '24px', backgroundColor: '#f4f7f6', border: '1px solid #333', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
       
       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
         
@@ -251,7 +267,12 @@ export default function CustomerDetail() {
           {/* Middle Row: Interactions & Spend Analysis */}
           <div style={{ display: 'flex', gap: '20px' }}>
             <div style={{ flex: 2, background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-              <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #eee', paddingBottom: '12px', color: '#333' }}>Last 10 Interactions</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '12px', marginBottom: '16px' }}>
+                <h4 style={{ margin: 0, color: '#333' }}>Recent Audited Actions</h4>
+                <button className="btn btn-sm btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => setShowReplay(true)}>
+                  <Terminal size={14}/> View Detailed Audit
+                </button>
+              </div>
               <table style={{ width: '100%', fontSize: '13px', textAlign: 'left', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ color: '#888', borderBottom: '1px solid #eee' }}>
@@ -293,10 +314,10 @@ export default function CustomerDetail() {
           {/* Bottom Row: Privileged Actions (Insider Threat Vectors) */}
           <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '8px', border: '1px solid #ffeeba', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #ffeeba', paddingBottom: '12px', color: '#856404', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={20}/> Privileged Operations (Insider Threat Vectors)
+              <Terminal size={20}/> Insider Threat Vectors — Credential Vault Actions
             </h4>
             <p style={{ fontSize: '13px', color: '#856404', marginBottom: '20px' }}>
-              As a privileged user, you can perform actions on behalf of the customer. These actions are strictly monitored by the Zero Trust Architecture.
+              You do not see passwords. Credentials are automatically injected by the PAW. All actions executed here are explicitly tied to your session ID and audited.
             </p>
             
             <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
@@ -339,7 +360,9 @@ export default function CustomerDetail() {
           onDenied={() => { setFreezeOverlay(null); setPendingAction(null); showToast('Action was denied by admin', 'error') }}
         />
       )}
+      <SessionReplay show={showReplay} onClose={() => setShowReplay(false)} />
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
+      </div>
     </div>
   )
 }

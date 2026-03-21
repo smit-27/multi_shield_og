@@ -4,7 +4,7 @@ import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
-import { Users, CheckCircle, AlertTriangle, Coins, Download, Search } from 'lucide-react'
+import { Users, CheckCircle, AlertTriangle, Coins, Download, Search, Lock, Unlock } from 'lucide-react'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -20,6 +20,7 @@ export default function Customers() {
   const [freezeOverlay, setFreezeOverlay] = useState(null)
   const [justifyModal, setJustifyModal] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
+  const [unlockedCustomers, setUnlockedCustomers] = useState(new Set())
 
   const load = () => {
     const q = search ? `?search=${encodeURIComponent(search)}` : ''
@@ -94,8 +95,18 @@ export default function Customers() {
   }
 
   const handleJustifySubmit = async (reason) => {
-    showToast(`Justification submitted: "${reason}"`)
+    showToast(`Justification pending approval...`)
     setJustifyModal(null)
+    
+    if (pendingAction?.type === 'jit_access') {
+      setTimeout(() => {
+        setUnlockedCustomers(prev => new Set(prev).add(pendingAction.customerId))
+        setPendingAction(null)
+        showToast(`JIT Access Approved. Credentials procured for Vault Connection.`)
+      }, 1500)
+      return
+    }
+
     if (pendingAction) {
       setExporting(true)
       try {
@@ -168,9 +179,18 @@ export default function Customers() {
                     <td className="text-right amount">{formatINR(c.balance)}</td>
                     <td>{riskBadge(c.risk_category)}</td>
                     <td>
-                      <button className="btn btn-sm btn-primary" onClick={() => navigate(`/customers/${c.id}`)}>
-                        View Profile
-                      </button>
+                      {unlockedCustomers.has(c.id) ? (
+                        <button className="btn btn-sm" onClick={() => navigate(`/customers/${c.id}`)} style={{background: 'var(--success)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px'}}>
+                          <Unlock size={14}/> Connect Securely
+                        </button>
+                      ) : (
+                        <button className="btn btn-sm btn-outline" onClick={() => {
+                          setJustifyModal({ data: { message: `Requesting JIT access for Customer ID: ${c.id}. This session will be recorded and audited.` } })
+                          setPendingAction({ type: 'jit_access', customerId: c.id })
+                        }} style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)'}}>
+                          <Lock size={14}/> Request Access
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
