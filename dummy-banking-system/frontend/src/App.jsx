@@ -31,6 +31,7 @@ function remapPath(path) {
   if (path === '/api/auth/login') return '/api/zta/login'
   if (path === '/api/auth/me') return '/api/zta/session'
   if (path === '/api/auth/logout') return '/api/zta/logout'
+  if (path.startsWith('/api/zta/')) return path
   if (path.startsWith('/api/')) return '/api/banking' + path.slice(4)
   return path
 }

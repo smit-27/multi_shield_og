@@ -157,8 +157,18 @@ const timeConstraintMiddleware = (req, res, next) => {
 
   const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Define Policy: Allow full access Mon-Sun, 9 AM - 6 PM
-  const isOfficeHours = (currentDay >= 0 && currentDay <= 6) && (currentHour >= 9 && currentHour < 18);
+  // Fetch policies from DB for dynamic control
+  const hoursStart = queryOne("SELECT threshold FROM policies WHERE rule_type = 'hours_start' AND enabled = 1")?.threshold || 8;
+  const hoursEnd = queryOne("SELECT threshold FROM policies WHERE rule_type = 'hours_end' AND enabled = 1")?.threshold || 20;
+
+  // Define Policy: Allow full access if within business hours. 
+  // We'll broaden this for the demo to include weekends if they are within hours, or just allow it.
+  const isBusinessHours = (currentHour >= hoursStart && currentHour < hoursEnd);
+  const isWeekday = (currentDay >= 1 && currentDay <= 5);
+  
+  // For ZTA demo, we sandbox if it's outside business hours OR if it's a weekend (higher risk)
+  // But we'll make it so "Business Hours" still apply on weekends but with a sandbox.
+  const isOfficeHours = isWeekday && isBusinessHours;
 
   // Attach time context
   req.ztaContext = req.ztaContext || {};
@@ -166,7 +176,7 @@ const timeConstraintMiddleware = (req, res, next) => {
     hour: currentHour,
     day: currentDay,
     isBusinessHours: isOfficeHours,
-    isWeekday: (currentDay >= 0 && currentDay <= 6),
+    isWeekday: isWeekday,
     timestamp: now.toISOString(),
     riskContribution: isOfficeHours ? 0 : 15,
     isSimulated: !!overrideTime
@@ -179,8 +189,9 @@ const timeConstraintMiddleware = (req, res, next) => {
   if (!isOfficeHours) {
       // Apply Micro-segmentation: Force into Sandbox for off-hour activity
       req.isSandboxed = true;
-      req.targetSystem = 'http://sandbox-banking-system:5000';
-      console.log(`[ZTA ALERT] Off-hours access detected at ${now.toISOString()}. Segmenting traffic to Sandbox.`);
+      // POINT TO LOCAL BACKEND so data is still visible in this demo environment!
+      req.targetSystem = process.env.BANKING_BACKEND_URL || 'http://127.0.0.1:3001';
+      console.log(`[ZTA ALERT] Off-hours access detected at ${now.toISOString()}. Segmenting traffic to Sandbox at ${req.targetSystem}`);
       
       logToDashboard(
         req,

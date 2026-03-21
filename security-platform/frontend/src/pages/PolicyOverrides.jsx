@@ -27,7 +27,7 @@ export default function PolicyOverrides() {
     overrides.sandboxRiskScore !== ZTA_DEFAULTS.sandboxRiskScore;
 
   useEffect(() => {
-    const socket = io('http://localhost:3002')
+    const socket = io('http://127.0.0.1:3002')
     socket.on('connect', () => setIsConnected(true))
     socket.on('disconnect', () => setIsConnected(false))
 

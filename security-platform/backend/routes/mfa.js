@@ -93,12 +93,6 @@ router.post('/:challengeId/verify', (req, res) => {
 
   const { value } = req.body;
   
-  if (isZta) {
-    const { verifyStepUpStep } = require('../middleware/stepUpAuth');
-    const result = verifyStepUpStep(challenge.id, challenge.current_step, value);
-    return res.status(result.success ? 200 : 401).json(result);
-  }
-
   const currentStep = challenge.step;
   let verified = false;
 

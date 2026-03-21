@@ -19,7 +19,7 @@ export default function SOCDashboard() {
 
   useEffect(() => {
     // Connect to Backend Socket.io
-    const socket = io('http://localhost:3002')
+    const socket = io('http://127.0.0.1:3002')
 
     socket.on('connect', () => setIsConnected(true))
     socket.on('disconnect', () => setIsConnected(false))

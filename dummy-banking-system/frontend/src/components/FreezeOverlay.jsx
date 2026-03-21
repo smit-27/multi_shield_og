@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
-const SECURITY_PLATFORM_URL = 'http://localhost:3002'
-const SECURITY_FRONTEND_URL = 'http://localhost:5174'
+const SECURITY_PLATFORM_URL = 'http://127.0.0.1:3002'
+const SECURITY_FRONTEND_URL = 'http://127.0.0.1:5174'
 
 export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
   const [timeLeft, setTimeLeft] = useState(30 * 60) // 30 minutes

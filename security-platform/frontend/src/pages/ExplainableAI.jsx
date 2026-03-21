@@ -15,7 +15,7 @@ export default function ExplainableAI() {
 
   // Socket connection for live telemetry
   useEffect(() => {
-    const socket = io('http://localhost:3002')
+    const socket = io('http://127.0.0.1:3002')
 
     socket.on('zta-activity', (data) => {
       setActivities(prev => [data, ...prev].slice(0, 50))

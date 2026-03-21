@@ -16,7 +16,7 @@ export default function Admin() {
   // Poll for active MFA codes
   useEffect(() => {
     const fetchCodes = () => {
-      fetch('http://localhost:3002/api/mfa/active/codes')
+      fetch('http://127.0.0.1:3002/api/mfa/active/codes')
         .then(res => res.json())
         .then(data => setMfaCodes(data.challenges || []))
         .catch(console.error)
@@ -27,7 +27,7 @@ export default function Admin() {
   }, [])
 
   useEffect(() => {
-    const socket = io('http://localhost:3002')
+    const socket = io('http://127.0.0.1:3002')
 
     socket.on('zta-activity', (data) => {
       setActivities(prev => [data, ...prev].slice(0, 50))
