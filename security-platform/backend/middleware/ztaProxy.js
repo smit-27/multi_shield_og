@@ -77,7 +77,7 @@ function createBankingProxy() {
  * Simple proxy function for non-middleware usage (manual forwarding)
  */
 async function forwardToBanking(path, method, body, ztaHeaders = {}) {
-  const url = `${BANKING_BACKEND_URL}${path}`;
+  const url = path.startsWith('http') ? path : `${BANKING_BACKEND_URL}${path}`;
   const headers = {
     'Content-Type': 'application/json',
     'X-ZTA-Verified': 'true',

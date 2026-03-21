@@ -1,8 +1,2 @@
 ✅ Database seeded with demo data
 🏦 Dummy Banking System API running on http://localhost:3001
-Security platform unreachable: fetch failed
-[DEBUG] Withdraw attempt: Account ACC005, Balance 5000000, Amount 2.3456787654323457e+35, Type of amount: number
-Security platform unreachable: fetch failed
-[DEBUG] Withdraw attempt: Account ACC005, Balance -2.3456787654323457e+35, Amount 546545, Type of amount: number
-Security platform unreachable: fetch failed
-[DEBUG] Withdraw attempt: Account ACC005, Balance -2.3456787654323457e+35, Amount 23456, Type of amount: number

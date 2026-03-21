@@ -47,6 +47,7 @@ services:
       - ./security-platform/backend/engine/models:/app/models:ro
     environment:
       MODEL_DIR: /app/models
+      TZ: Asia/Kolkata
     ports:
       - "8000:8000"
     networks:
@@ -68,6 +69,7 @@ services:
     environment:
       PORT: 3002
       NODE_ENV: development
+      TZ: Asia/Kolkata
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: multishield
       KEYCLOAK_CLIENT_ID: zta-gateway
@@ -96,6 +98,7 @@ services:
     environment:
       PORT: 3001
       SECURITY_PLATFORM_URL: http://security:3002
+      TZ: Asia/Kolkata
     # NOTE: No external port mapping!
     # The banking system is only accessible via the ZTA gateway (security service).
     # Uncomment the line below for debugging only:

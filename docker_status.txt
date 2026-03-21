@@ -1,0 +1,5 @@
+CONTAINER ID   IMAGE                            COMMAND                  CREATED         STATUS                   PORTS                                         NAMES
+f514adc4cfd3   multi_shield_og-security         "docker-entrypoint.s…"   6 minutes ago   Up 5 minutes             0.0.0.0:3002->3002/tcp, [::]:3002->3002/tcp   multishield-security
+770ec3f7fce1   multi_shield_og-ml-service       "uvicorn app:app --h…"   6 minutes ago   Up 6 minutes (healthy)   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp   multishield-ml
+963a99c230a1   quay.io/keycloak/keycloak:24.0   "/opt/keycloak/bin/k…"   6 minutes ago   Up 6 minutes (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp   multishield-keycloak
+800fb260d1ff   multi_shield_og-banking          "docker-entrypoint.s…"   6 minutes ago   Up 6 minutes             3001/tcp                                      multishield-banking

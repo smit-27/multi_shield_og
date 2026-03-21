@@ -86,7 +86,7 @@ function getTimeContext() {
   const hoursEnd = queryOne("SELECT threshold FROM policies WHERE rule_type = 'hours_end' AND enabled = 1")?.threshold || 20;
 
   const isBusinessHours = hour >= hoursStart && hour < hoursEnd;
-  const isWeekday = day >= 1 && day <= 5;
+  const isWeekday = day >= 0 && day <= 6; // Include Saturday and Sunday
 
   let riskContribution = 0;
   if (!isBusinessHours) riskContribution += 15;
@@ -157,8 +157,8 @@ const timeConstraintMiddleware = (req, res, next) => {
 
   const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Define Policy: Allow full access only Mon-Fri, 9 AM - 6 PM
-  const isOfficeHours = (currentDay >= 1 && currentDay <= 5) && (currentHour >= 9 && currentHour < 18);
+  // Define Policy: Allow full access Mon-Sun, 9 AM - 6 PM
+  const isOfficeHours = (currentDay >= 0 && currentDay <= 6) && (currentHour >= 9 && currentHour < 18);
 
   // Attach time context
   req.ztaContext = req.ztaContext || {};
@@ -166,7 +166,7 @@ const timeConstraintMiddleware = (req, res, next) => {
     hour: currentHour,
     day: currentDay,
     isBusinessHours: isOfficeHours,
-    isWeekday: (currentDay >= 1 && currentDay <= 5),
+    isWeekday: (currentDay >= 0 && currentDay <= 6),
     timestamp: now.toISOString(),
     riskContribution: isOfficeHours ? 0 : 15,
     isSimulated: !!overrideTime
