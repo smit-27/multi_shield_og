@@ -244,9 +244,10 @@ router.post('/step-up', verifyJwt, (req, res) => {
     steps: [
       { step: 0, label: 'User ID', description: 'Verify your employee identification number' },
       { step: 1, label: 'Password', description: 'Enter your security password' },
-      { step: 2, label: 'Face Authentication', description: 'Verify your identity with face scan' }
+      { step: 2, label: 'Face Authentication', description: 'Verify your identity with face scan' },
+      { step: 3, label: 'Hexcode OTP', description: 'Enter the security hexcode shown in the Admin Panel' }
     ],
-    message: 'Step-up authentication initiated. Complete all 3 steps to elevate your trust level.'
+    message: 'Step-up authentication initiated. Complete all 4 steps to elevate your trust level.'
   });
 });
 
