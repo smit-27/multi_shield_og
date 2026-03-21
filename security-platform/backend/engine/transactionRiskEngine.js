@@ -86,7 +86,7 @@ function analyzeTransactionRisk(activity, overrides = {}) {
     'Database Admin': ['bulk_data_export', 'view_customers', 'export']
   };
   const allowed = rolePerms[activity.role] || [];
-  
+
   if (['Database Admin', 'Customer Support', 'IT'].includes(activity.role)) {
     // Insider Threat: Financial Fraud
     if (['withdraw', 'transfer'].includes(activity.action)) {
