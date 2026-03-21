@@ -4,9 +4,10 @@ import { apiFetch } from '../App'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
 import { AlertTriangle, ArrowRightLeft, UserCircle, CreditCard, Home, FileText, Terminal, LogOut } from 'lucide-react'
-import SessionReplay from '../components/SessionReplay'
+import SessionReplay from "../components/SessionReplay.jsx";
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
+const maskPAN = (pan) => pan ? pan.substring(0, 3) + '****' + pan.substring(pan.length - 1) : '—'
 
 export default function CustomerDetail() {
   const { id } = useParams()
@@ -212,10 +213,10 @@ export default function CustomerDetail() {
           <div style={{ display: 'flex', gap: '20px' }}>
             <div style={{ flex: 1, background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '12px', marginBottom: '16px' }}>
-                <h4 style={{ margin: 0, color: '#333' }}>Account Statement</h4>
-                <span style={{ color: '#f89c1e', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Email</span>
+                <h4 style={{ margin: 0, color: '#333' }}>Account Summary</h4>
+                <span style={{ color: '#f89c1e', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Download Statement</span>
               </div>
-              <div style={{ color: '#888', fontSize: '13px' }}>Current Balance</div>
+              <div style={{ color: '#888', fontSize: '13px' }}>Available Balance</div>
               <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginTop: '4px' }}>
                 {formatINR(primaryAccount.balance || customer.balance)}
               </div>
@@ -225,12 +226,12 @@ export default function CustomerDetail() {
                     797
                   </div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Score</div>
+                <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>CIBIL Score</div>
               </div>
             </div>
 
             <div style={{ flex: 2, background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-              <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #eee', paddingBottom: '12px', color: '#333' }}>Customer Information</h4>
+              <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #eee', paddingBottom: '12px', color: '#333' }}>KYC & Personal Information</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '14px' }}>
                 <div>
                   <span style={{ color: '#888', display: 'inline-block', width: '100px' }}>A/C Number:</span>
@@ -238,7 +239,7 @@ export default function CustomerDetail() {
                 </div>
                 <div>
                   <span style={{ color: '#888', display: 'inline-block', width: '100px' }}>PAN:</span>
-                  <strong>{customer.pan}</strong>
+                  <strong>{maskPAN(customer.pan)}</strong>
                 </div>
                 <div>
                   <span style={{ color: '#888', display: 'inline-block', width: '100px' }}>Name:</span>
@@ -251,6 +252,10 @@ export default function CustomerDetail() {
                 <div>
                   <span style={{ color: '#888', display: 'inline-block', width: '100px' }}>Account Type:</span>
                   <strong>{customer.account_type.toUpperCase()}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#888', display: 'inline-block', width: '100px' }}>IFSC Code:</span>
+                  <strong>NBIN0001234</strong>
                 </div>
                 <div>
                   <span style={{ color: '#888', display: 'inline-block', width: '100px' }}>Phone No:</span>
@@ -324,7 +329,7 @@ export default function CustomerDetail() {
               
               {/* Force Transfer */}
               <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '16px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                <h5 style={{ margin: '0 0 12px 0', color: '#d9534f', display: 'flex', alignItems: 'center', gap: '6px' }}><ArrowRightLeft size={16}/> Financial Fraud (Transfer)</h5>
+                <h5 style={{ margin: '0 0 12px 0', color: '#d9534f', display: 'flex', alignItems: 'center', gap: '6px' }}><ArrowRightLeft size={16}/> Fund Transfer (Debit)</h5>
                 <input type="number" placeholder="Amount (INR)" className="form-input" style={{ marginBottom: '8px', width: '100%' }} value={transferAmount} onChange={e => setTransferAmount(e.target.value)} />
                 <input type="text" placeholder="Destination AC (e.g. ACC004)" className="form-input" style={{ marginBottom: '12px', width: '100%' }} value={transferDest} onChange={e => setTransferDest(e.target.value)} />
                 <button className="btn btn-sm btn-primary" onClick={doTransferFraud} style={{ width: '100%' }}>Initiate Transfer</button>
@@ -332,7 +337,7 @@ export default function CustomerDetail() {
 
               {/* Account Takeover */}
               <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '16px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                <h5 style={{ margin: '0 0 12px 0', color: '#f0ad4e', display: 'flex', alignItems: 'center', gap: '6px' }}><UserCircle size={16}/> Account Takeover (Modify Details)</h5>
+                <h5 style={{ margin: '0 0 12px 0', color: '#f0ad4e', display: 'flex', alignItems: 'center', gap: '6px' }}><UserCircle size={16}/> Contact Details Modification</h5>
                 <input type="email" placeholder="New Email" className="form-input" style={{ marginBottom: '8px', width: '100%' }} value={newEmail} onChange={e => setNewEmail(e.target.value)} />
                 <input type="text" placeholder="New Phone" className="form-input" style={{ marginBottom: '12px', width: '100%' }} value={newPhone} onChange={e => setNewPhone(e.target.value)} />
                 <button className="btn btn-sm" onClick={doContactFraud} style={{ width: '100%', background: '#f0ad4e', color: 'white', border: 'none' }}>Change Details</button>
@@ -340,7 +345,7 @@ export default function CustomerDetail() {
 
               {/* Physical Fraud */}
               <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '16px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                <h5 style={{ margin: '0 0 12px 0', color: '#5bc0de', display: 'flex', alignItems: 'center', gap: '6px' }}><CreditCard size={16}/> Physical Fraud (Card Replacement)</h5>
+                <h5 style={{ margin: '0 0 12px 0', color: '#5bc0de', display: 'flex', alignItems: 'center', gap: '6px' }}><CreditCard size={16}/> Card Reissuance</h5>
                 <textarea placeholder="New Shipping Address..." className="form-input" rows="2" style={{ marginBottom: '12px', width: '100%' }} value={newAddress} onChange={e => setNewAddress(e.target.value)} />
                 <button className="btn btn-sm" onClick={doCardFraud} style={{ width: '100%', background: '#5bc0de', color: 'white', border: 'none' }}>Issue Replacement Card</button>
               </div>

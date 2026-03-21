@@ -4,9 +4,10 @@ import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
-import { Users, CheckCircle, AlertTriangle, Coins, Download, Search, Lock, Unlock } from 'lucide-react'
+import { Users, CheckCircle, AlertTriangle, Coins, Download, Search, Lock, Unlock, Eye } from 'lucide-react'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
+const maskPAN = (pan) => pan ? pan.substring(0, 3) + '****' + pan.substring(pan.length - 1) : '—'
 
 export default function Customers() {
   const navigate = useNavigate()
@@ -138,8 +139,8 @@ export default function Customers() {
     <div>
       <div className="hero-landing-section">
         <div className="hero-card">
-          <h3>Customer Relationship Index</h3>
-          <p>Access authorized customer records, perform KYC audits, and manage high-net-worth relationships within the secure database.</p>
+          <h3>Customer Information File (CIF)</h3>
+          <p>Access KYC-verified customer records, perform due diligence checks, and manage relationship profiles. All data access is logged per RBI Master Circular on KYC/AML.</p>
         </div>
       </div>
 
@@ -167,17 +168,17 @@ export default function Customers() {
           </div>
           <div className="table-wrapper">
             <table>
-              <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>PAN</th><th>Account</th><th className="text-right">Balance</th><th>Risk</th><th>Action</th></tr></thead>
+              <thead><tr><th>CIF ID</th><th>Name & Address</th><th>Contact</th><th>PAN</th><th>A/C Type</th><th>KYC Status</th><th className="text-right">Balance</th><th>Action</th></tr></thead>
               <tbody>
                 {customers.map(c => (
                   <tr key={c.id}>
-                    <td style={{fontFamily:'monospace', fontSize:'13px'}}>{c.id}</td>
+                    <td style={{fontFamily:'monospace', fontSize:'13px', color:'var(--accent)'}}>CIF-{String(c.id).padStart(6, '0')}</td>
                     <td><strong>{c.full_name}</strong><br/><span style={{fontSize:'12px', color:'var(--text-muted)'}}>{c.address}</span></td>
                     <td><div style={{fontSize:'13px'}}>{c.email}</div><div style={{fontSize:'12px', color:'var(--text-muted)'}}>{c.phone}</div></td>
-                    <td style={{fontFamily:'monospace', fontSize:'13px'}}>{c.pan}</td>
-                    <td><span className="badge neutral">{c.account_type}</span></td>
+                    <td style={{fontFamily:'monospace', fontSize:'13px'}}>{maskPAN(c.pan)}</td>
+                    <td><span className="badge neutral">{c.account_type?.toUpperCase()}</span></td>
+                    <td><span className={`badge ${c.risk_category === 'high' ? 'danger' : 'success'}`}>{c.risk_category === 'high' ? 'Re-KYC Due' : 'Verified'}</span></td>
                     <td className="text-right amount">{formatINR(c.balance)}</td>
-                    <td>{riskBadge(c.risk_category)}</td>
                     <td>
                       {unlockedCustomers.has(c.id) ? (
                         <button className="btn btn-sm" onClick={() => navigate(`/customers/${c.id}`)} style={{background: 'var(--success)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px'}}>
@@ -194,7 +195,7 @@ export default function Customers() {
                     </td>
                   </tr>
                 ))}
-                {customers.length === 0 && <tr><td colSpan={7} className="empty-state">No customers found</td></tr>}
+                {customers.length === 0 && <tr><td colSpan={8} className="empty-state">No customers found</td></tr>}
               </tbody>
             </table>
           </div>

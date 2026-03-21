@@ -150,22 +150,22 @@ export default function Treasury() {
     <div>
       <div className="hero-landing-section">
         <div className="hero-card">
-          <h3>Welcome to Treasury Operations</h3>
-          <p>Institutional liquidity management, inter-terminal transfers, and high-value withdrawals. All operations are subject to real-time risk assessment.</p>
+          <h3>Treasury & Settlement Operations</h3>
+          <p>Manage institutional fund flows, inter-branch settlements, and RTGS/NEFT processing. All transfers are subject to real-time fraud scoring per RBI guidelines.</p>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon={<Coins size={24} />} label="Total Balance" value={formatINR(stats.totalBalance || 0)} color="blue" change="↑ 2.4% from yesterday" />
-        <KpiCard icon={<Activity size={24} />} label="Daily Volume" value={formatINR(stats.dailyVolume || 0)} color="green" />
-        <KpiCard icon={<Clock size={24} />} label="Pending Approvals" value={stats.pendingApprovals || 0} color="orange" />
-        <KpiCard icon={<ShieldAlert size={24} />} label="Blocked Transactions" value={stats.blockedTransactions || 0} color="red" />
+        <KpiCard icon={<Coins size={24} />} label="Aggregate Position" value={formatINR(stats.totalBalance || 0)} color="blue" change="↑ 2.4% from yesterday" />
+        <KpiCard icon={<Activity size={24} />} label="Today's Throughput" value={formatINR(stats.dailyVolume || 0)} color="green" />
+        <KpiCard icon={<Clock size={24} />} label="Pending Clearance" value={stats.pendingApprovals || 0} color="orange" />
+        <KpiCard icon={<ShieldAlert size={24} />} label="Held by Compliance" value={stats.blockedTransactions || 0} color="red" />
       </div>
 
       <div className="grid-2">
         <div className="card">
           <div className="card-header">
-            <h3>Account Balances</h3>
+            <h3>Nostro / Vostro Balances</h3>
           </div>
           <div className="card-body" style={{padding: 0}}>
             <div className="table-wrapper">
@@ -189,18 +189,18 @@ export default function Treasury() {
           <div className="card">
             <div className="card-header"><h3>Quick Actions</h3></div>
             <div className="card-body" style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              <button className="btn btn-outline" onClick={() => { setFormData({}); setShowTransfer(true) }}><ArrowRightLeft size={16} /> Internal Transfer</button>
+              <button className="btn btn-outline" onClick={() => { setFormData({}); setShowTransfer(true) }}><ArrowRightLeft size={16} /> RTGS / Internal Transfer</button>
             </div>
           </div>
         </div>
       </div>
 
       <div className="card">
-        <div className="card-header"><h3>Recent Transactions</h3></div>
+         <div className="card-header"><h3>Transaction Ledger (Last 15)</h3></div>
         <div className="card-body" style={{padding: 0}}>
           <div className="table-wrapper">
             <table>
-              <thead><tr><th>ID</th><th>Account</th><th>Type</th><th className="text-right">Amount</th><th>Description</th><th>Status</th><th>Time</th></tr></thead>
+               <thead><tr><th>Txn Ref</th><th>Account</th><th>Channel</th><th className="text-right">Amount</th><th>Narration</th><th>Status</th><th>Value Date</th></tr></thead>
               <tbody>
                 {transactions.map(tx => (
                   <tr key={tx.id}>

@@ -125,13 +125,13 @@ function Layout() {
           </div>
           <div className="brand-text">
             <h1>NATIONAL BANK</h1>
-            <p>Institutional Banking & Markets</p>
+            <p>Core Banking System — Branch Operations</p>
           </div>
         </div>
 
         <div className="header-badges">
-          <div className="badge-outline green">● SYSTEM ONLINE</div>
-          <div className="badge-outline gold">TRUSTED NODE</div>
+          <div className="badge-outline green">● CBS ONLINE</div>
+          <div className="badge-outline gold">RBI COMPLIANT</div>
           <a href="#" className="access-link" onClick={(e) => { e.preventDefault(); logout(); navigate('/login'); }}>TERMINATE SESSION</a>
         </div>
       </header>

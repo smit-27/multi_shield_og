@@ -125,21 +125,21 @@ export default function Loans() {
     <div>
       <div className="hero-landing-section">
         <div className="hero-card">
-          <h3>Commercial Loan Portfolio</h3>
-          <p>Manage corporate credit facilities, term loans, and working capital approvals. Review applications against the National Risk Framework.</p>
+          <h3>Credit & Lending Portfolio</h3>
+          <p>Review and manage credit facility applications, term loan underwriting, and working capital sanctions. All approvals are governed by the bank’s Internal Credit Risk Rating framework.</p>
         </div>
       </div>
 
       <div className="kpi-grid">
         <KpiCard icon={<FileText size={20} />} label="Total Applications" value={stats.total || 0} color="blue" />
-        <KpiCard icon={<Clock size={20} />} label="Pending Review" value={stats.pending || 0} color="orange" />
-        <KpiCard icon={<CheckCircle size={20} />} label="Approved" value={stats.approved || 0} color="green" />
-        <KpiCard icon={<Coins size={20} />} label="Approved Amount" value={formatINR(stats.approvedAmount || 0)} color="purple" />
+        <KpiCard icon={<Clock size={20} />} label="Pending Underwriting" value={stats.pending || 0} color="orange" />
+        <KpiCard icon={<CheckCircle size={20} />} label="Sanctioned" value={stats.approved || 0} color="green" />
+        <KpiCard icon={<Coins size={20} />} label="Sanctioned Amount" value={formatINR(stats.approvedAmount || 0)} color="purple" />
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>Loan Applications</h3>
+           <h3>Credit Applications</h3>
           <div style={{display:'flex', gap:'8px'}}>
             {['', 'pending', 'approved', 'rejected'].map(f => (
               <button key={f} className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-outline'}`} onClick={() => setFilter(f)}>
@@ -151,7 +151,7 @@ export default function Loans() {
         <div className="card-body" style={{padding: 0}}>
           <div className="table-wrapper">
             <table>
-              <thead><tr><th>ID</th><th>Applicant</th><th>Type</th><th className="text-right">Amount</th><th>Rate</th><th>Tenure</th><th>Status</th><th>Actions</th></tr></thead>
+               <thead><tr><th>Ref No.</th><th>Applicant</th><th>Facility Type</th><th className="text-right">Amount</th><th>Rate</th><th>Tenure</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {loans.map(loan => (
                   <tr key={loan.id}>
@@ -165,8 +165,8 @@ export default function Loans() {
                     <td>
                       {loan.status === 'pending' && (
                         <div style={{display:'flex',gap:'6px'}}>
-                          <button className="btn btn-sm btn-success" onClick={() => approveLoan(loan.id)}><Check size={14} /> Approve</button>
-                          <button className="btn btn-sm btn-danger" onClick={() => rejectLoan(loan.id)}><X size={14} /> Reject</button>
+                          <button className="btn btn-sm btn-success" onClick={() => approveLoan(loan.id)}><Check size={14} /> Sanction</button>
+                          <button className="btn btn-sm btn-danger" onClick={() => rejectLoan(loan.id)}><X size={14} /> Decline</button>
                         </div>
                       )}
                       {loan.status !== 'pending' && <span style={{fontSize:'12px',color:'var(--text-muted)'}}>—</span>}

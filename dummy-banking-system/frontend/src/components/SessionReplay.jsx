@@ -33,7 +33,7 @@ export default function SessionReplay({ show, sessionData, onClose }) {
       const timer = setTimeout(() => {
         setLogs(prev => [...prev, replayLogs[currentLine]])
         setCurrentLine(c => c + 1)
-      }, Math.max(500 / speed, 50)) // Randomize slightly for effect in real app, steady here
+      }, Math.max(500 / speed, 50))
       return () => clearTimeout(timer)
     }
   }, [show, isPlaying, currentLine, replayLogs, speed])
@@ -115,7 +115,6 @@ export default function SessionReplay({ show, sessionData, onClose }) {
               </button>
             </div>
           )}
-          {/* Blinking cursor */}
           {currentLine < replayLogs.length && <span style={{ animation: 'blink 1s step-end infinite' }}>_</span>}
         </div>
       </div>

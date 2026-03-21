@@ -130,33 +130,33 @@ export default function Withdrawals() {
   return (
     <div>
       <div className="page-header">
-        <h2>Corporate Withdrawals</h2>
-        <p>Submit and manage high-value corporate withdrawals directly via the ZTA gateway.</p>
+        <h2>Cash Management & Disbursements</h2>
+        <p>Process high-value withdrawals and fund disbursements. All requests above ₹50,000 are subject to mandatory compliance checks per RBI Master Direction on KYC.</p>
       </div>
 
       <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
         <div className="card-header">
-          <h3 style={{display: 'flex', alignItems: 'center', gap: '8px'}}><ArrowDownToLine size={18}/> Initiate Withdrawal</h3>
+           <h3 style={{display: 'flex', alignItems: 'center', gap: '8px'}}><ArrowDownToLine size={18}/> Initiate Fund Disbursement</h3>
         </div>
         <div className="card-body">
           <div className="form-group">
-            <label>Source Account</label>
+             <label>Debit Account (Source)</label>
             <select className="form-select" value={formData.account_id || ''} onChange={e => setFormData({...formData, account_id: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()}>
               <option value="">Select an account...</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({formatINR(a.balance)})</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label>Amount (₹)</label>
-            <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="Enter withdrawal amount" />
+             <label>Disbursement Amount (₹)</label>
+            <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="Enter amount (min ₹1,000)" />
           </div>
           <div className="form-group">
-            <label>Description Note</label>
-            <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="e.g. Vendor Payment FY26" />
+             <label>Narration / Purpose</label>
+            <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="e.g. Vendor Payment INV-2026-0431" />
           </div>
           
           <button style={{marginTop: '20px', width: '100%', justifyContent: 'center'}} className="btn btn-primary" onClick={handleWithdraw} disabled={submitting}>
-            {submitting ? 'Processing...' : 'Submit Withdrawal for Security Clearance'}
+            {submitting ? 'Processing...' : 'Submit for Compliance Clearance'}
           </button>
         </div>
       </div>
