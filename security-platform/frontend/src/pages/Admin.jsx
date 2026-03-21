@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { apiFetch } from '../App';
 import { io } from 'socket.io-client';
+import AuditTerminal from '../components/AuditTerminal';
 
 // Timeline data for last 24 hours
 const MOCK_TIMELINE = Array.from({ length: 24 }).map((_, i) => ({
@@ -46,6 +47,14 @@ export default function AdminDashboard() {
   const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
   const [mfaCodes, setMfaCodes] = useState([]);
   const [trafficStats, setTrafficStats] = useState({ verified: 0, sandboxed: 0, blocked: 0 });
+  const [stats, setStats] = useState({
+    highRiskEvents: 0,
+    activeSessions: 0,
+    eventsToday: 0
+  });
+  const [activities, setActivities] = useState([]);
+  const [threats, setThreats] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Poll for active MFA codes
   useEffect(() => {
@@ -81,16 +90,6 @@ export default function AdminDashboard() {
   const totalTraffic = trafficStats.verified + trafficStats.sandboxed + trafficStats.blocked;
   const loadActiveThreats = trafficStats.blocked;
   const riskIndex = ((trafficStats.blocked * 0.9 + trafficStats.sandboxed * 0.4) / (totalTraffic || 1) * 100).toFixed(1);
-
-
-  const [stats, setStats] = useState({
-    highRiskEvents: 0,
-    activeSessions: 0,
-    eventsToday: 0
-  });
-  const [activities, setActivities] = useState([]);
-  const [threats, setThreats] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = async () => {
     try {
@@ -249,7 +248,12 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.mono }}>
-                        {new Date((typeof act.timestamp === 'string' && act.timestamp.includes(' ') && !act.timestamp.includes('Z')) ? act.timestamp.replace(' ', 'T') + 'Z' : act.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        {(() => {
+                          const ts = act.timestamp;
+                          if (!ts) return '—';
+                          const dateStr = (typeof ts === 'string' && ts.includes(' ') && !ts.includes('Z')) ? ts.replace(' ', 'T') + 'Z' : ts;
+                          return new Date(dateStr).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        })()}
                       </td>
                     </tr>
                   )
@@ -295,7 +299,6 @@ export default function AdminDashboard() {
                 [...mfaCodes]
                   .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                   .map((code, idx) => {
-                    const timeStr = new Date(code.created_at.includes('Z') || code.created_at.includes('+') ? code.created_at : code.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     return (
                       <div key={code.id} className="transition-fast" style={{ padding: '12px 16px', backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderLight}`, borderLeft: `2px solid ${COLORS.accent}`, borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div style={{ fontSize: '12px', fontFamily: 'IBM Plex Mono', color: COLORS.textTertiary, width: '24px' }}>#{idx + 1}</div>
@@ -304,7 +307,12 @@ export default function AdminDashboard() {
                           <div style={{ fontSize: '11px', color: COLORS.accent, textTransform: 'uppercase' }}>{code.action}</div>
                         </div>
                         <div style={{ fontSize: '11px', fontFamily: 'IBM Plex Mono', color: COLORS.textSecondary, textAlign: 'right' }}>
-                          <div>{timeStr}</div>
+                          <div>{(() => {
+                            const ct = code.created_at;
+                            if (!ct) return '—';
+                            const dateStr = (typeof ct === 'string' && (ct.includes('Z') || ct.includes('+'))) ? ct : ct.replace(' ', 'T') + 'Z';
+                            return new Date(dateStr).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                          })()}</div>
                         </div>
                         <div style={{ fontFamily: 'IBM Plex Mono', fontSize: '14px', fontWeight: 700, color: COLORS.accent, backgroundColor: COLORS.neuBg, padding: '4px 8px', borderRadius: '4px', border: `1px solid ${COLORS.borderActive}` }}>
                           {code.otp_code}
@@ -319,35 +327,11 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ── CHART SECTION ── */}
+      {/* ── AUDIT TERMINAL SECTION ── */}
       <section style={{ padding: '32px 40px', backgroundColor: COLORS.base }}>
-        <SectionHeader title="Volume Architecture · 24H" />
-        <div style={{ height: '220px', width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={MOCK_TIMELINE} margin={{ top: 10, right: 0, left: -20, bottom: 0 }} barGap={0} barSize={12}>
-              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="hour" 
-                axisLine={{ stroke: COLORS.borderLight }} 
-                tickLine={false} 
-                tick={{ fontSize: 13, fill: COLORS.textTertiary, fontFamily: 'IBM Plex Mono' }} 
-                dy={16}
-              />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 13, fill: COLORS.textTertiary, fontFamily: 'IBM Plex Mono' }} 
-              />
-              <RechartsTooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                contentStyle={{ backgroundColor: COLORS.elevated, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 0, fontFamily: 'IBM Plex Mono', fontSize: '12px', boxShadow: 'none' }}
-                itemStyle={{ color: COLORS.textPrimary }}
-              />
-              <Bar dataKey="low" stackId="a" fill={COLORS.lowText} isAnimationActive={false} />
-              <Bar dataKey="medium" stackId="a" fill={COLORS.medText} isAnimationActive={false} />
-              <Bar dataKey="high" stackId="a" fill={COLORS.highText} isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
+        <SectionHeader title="System Audit Terminal — Live Replay" />
+        <div style={{ height: '350px', width: '100%', borderRadius: '6px', overflow: 'hidden', border: `1px solid ${COLORS.borderLight}` }}>
+          <AuditTerminal />
         </div>
       </section>
     </div>

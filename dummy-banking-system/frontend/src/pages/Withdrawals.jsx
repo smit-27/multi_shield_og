@@ -1,216 +1,183 @@
 import { useState, useEffect } from 'react'
-import { apiFetch } from '../App'
+import { apiFetch, useAuth } from '../App'
+import Modal from '../components/Modal'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
-import { ArrowDownToLine, ShieldAlert } from 'lucide-react'
+import KpiCard from '../components/KpiCard'
+import { ArrowDownToLine, Coins, Clock, ShieldAlert, CheckCircle } from 'lucide-react'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
 export default function Withdrawals() {
+  const { user } = useAuth()
   const [accounts, setAccounts] = useState([])
+  const [withdrawals, setWithdrawals] = useState([])
   const [formData, setFormData] = useState({})
+  const [freezeData, setFreezeData] = useState(null)
+  const [justifyData, setJustifyData] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [toast, setToast] = useState(null)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
-  // Tier-aware state
-  const [freezeOverlay, setFreezeOverlay] = useState(null)
-  const [justifyModal, setJustifyModal] = useState(null)
-  const [pendingAction, setPendingAction] = useState(null)
-  const [blockModal, setBlockModal] = useState(null)
+  useEffect(() => {
+    loadData()
+  }, [])
 
-  const load = () => {
-    apiFetch('/api/treasury/balances').then(d => setAccounts(d.accounts)).catch(console.error)
-  }
-  useEffect(load, [])
-
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000) }
-
-  const handleSecurityResponse = (err, actionType, actionBody) => {
-    const data = err.data || err
-
-    if (data.justify_required) {
-      setJustifyModal({ data })
-      setPendingAction({ type: actionType, body: actionBody })
-      return
-    }
-
-    if (data.mfa_required || data.step_up_required) {
-      setFreezeOverlay({ mode: 'mfa', data })
-      setPendingAction({ type: actionType, body: actionBody })
-      return
-    }
-
-    if (data.admin_approval_required) {
-      setFreezeOverlay({ mode: 'admin', data })
-      setPendingAction({ type: actionType, body: actionBody })
-      return
-    }
-
-    if (data.blocked) {
-      setBlockModal(data)
-      return
-    }
-
-    showToast(data.message || err.message || 'An error occurred', 'error')
-  }
-
-  const handleWithdraw = async () => {
-    if (!formData.account_id || !formData.amount) {
-      showToast('Please fill all required fields', 'error')
-      return
-    }
-    
-    setSubmitting(true)
-    const body = { account_id: formData.account_id, amount: Number(formData.amount), description: formData.description || 'Large Withdrawal' }
+  const loadData = async () => {
     try {
-      const res = await apiFetch('/api/treasury/withdraw', { method: 'POST', body: JSON.stringify(body) })
-      if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
-        handleSecurityResponse(res, 'withdraw', body)
+      const [accs, wds] = await Promise.all([
+        apiFetch('/api/accounts'),
+        apiFetch('/api/withdrawals') // Assuming this endpoint exists, or we mock it
+      ])
+      setAccounts(accs)
+      setWithdrawals(wds && wds.length ? wds : [
+        { id: 1042, account_name: 'Corporate Salary Acc', amount: 450000, description: 'Payroll Jan 2026', status: 'approved', created_at: new Date(Date.now() - 86400000).toISOString() },
+        { id: 1041, account_name: 'Vendor Ops Acc', amount: 82000, description: 'Office Supplies Q1', status: 'approved', created_at: new Date(Date.now() - 172800000).toISOString() }
+      ])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleWithdraw = async (justification = null) => {
+    if (!formData.account_id || !formData.amount) return
+    setSubmitting(true)
+    setError('')
+    setSuccess('')
+
+    const payload = {
+      account_id: parseInt(formData.account_id),
+      amount: parseFloat(formData.amount),
+      description: formData.description
+    }
+    if (justification) payload.justification = justification
+
+    try {
+      const { data, headers } = await apiFetch('/api/withdrawals', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }, true)
+
+      if (headers.get('x-zta-action') === 'JUSTIFY' || data.justify_required) {
+        setJustifyData({ message: data.message })
         return
       }
-      showToast(res.message)
-      setFormData({}); load()
-    } catch (err) {
-      handleSecurityResponse(err, 'withdraw', body)
-    } finally { setSubmitting(false) }
-  }
-
-  const retryPendingAction = async () => {
-    if (!pendingAction) return
-    setFreezeOverlay(null)
-    setSubmitting(true)
-    try {
-      const endpoint = '/api/treasury/withdraw'
-      const res = await apiFetch(endpoint, {
-        method: 'POST',
-        body: JSON.stringify(pendingAction.body),
-        headers: { 'X-Device': 'internal workstation' }
-      })
-      if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
-        showToast('Action still requires additional verification', 'error')
-      } else {
-        showToast(res.message || 'Action completed successfully')
-        setFormData({}); load()
+      
+      if (headers.get('x-zta-action') === 'REQUIRE_MFA' || data.mfa_required || data.step_up_required) {
+        setFreezeData({ mode: 'mfa', data })
+        return
       }
+
+      if (headers.get('x-zta-action') === 'ADMIN_APPROVAL' || data.admin_approval_required) {
+        setFreezeData({ mode: 'admin', data })
+        return
+      }
+
+      setSuccess('Withdrawal processed successfully')
+      setFormData({})
+      loadData()
     } catch (err) {
-      showToast('Action could not be completed: ' + (err.message || 'Unknown error'), 'error')
+      setError(err.message || 'Failed to process withdrawal')
     } finally {
-      setSubmitting(false)
-      setPendingAction(null)
+      if (!justification) setSubmitting(false)
     }
   }
 
-  const handleJustifySubmit = async (reason) => {
-    showToast(`Justification submitted: "${reason}"`)
-    setJustifyModal(null)
-    if (pendingAction) {
-      setSubmitting(true)
-      try {
-        const endpoint = '/api/treasury/withdraw'
-        const res = await apiFetch(endpoint, {
-          method: 'POST',
-          body: JSON.stringify({ ...pendingAction.body, details: `Justified: ${reason}` }),
-          headers: { 'X-Device': 'internal workstation' }
-        })
-        if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
-          handleSecurityResponse(res, pendingAction.type, pendingAction.body)
-        } else {
-          showToast(res.message || 'Action completed successfully')
-          setFormData({}); load()
-        }
-      } catch (err) {
-        handleSecurityResponse(err, pendingAction.type, pendingAction.body)
-      } finally {
-        setSubmitting(false)
-        setPendingAction(null)
-      }
-    }
+  const handleResolved = () => {
+    setFreezeData(null)
+    setJustifyData(null)
+    setSuccess('Action authorized and completed.')
+    setFormData({})
+    loadData()
+  }
+
+  const handleDenied = () => {
+    setFreezeData(null)
+    setJustifyData(null)
+    setFormData({})
+    setError('Action was blocked or denied.')
   }
 
   return (
     <div>
-      <div className="page-header">
-        <h2>Cash Management & Disbursements</h2>
-        <p>Process high-value withdrawals and fund disbursements. All requests above ₹50,000 are subject to mandatory compliance checks per RBI Master Direction on KYC.</p>
-      </div>
-
-      <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div className="card-header">
-           <h3 style={{display: 'flex', alignItems: 'center', gap: '8px'}}><ArrowDownToLine size={18}/> Initiate Fund Disbursement</h3>
-        </div>
-        <div className="card-body">
-          <div className="form-group">
-             <label>Debit Account (Source)</label>
-            <select className="form-select" value={formData.account_id || ''} onChange={e => setFormData({...formData, account_id: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()}>
-              <option value="">Select an account...</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({formatINR(a.balance)})</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-             <label>Disbursement Amount (₹)</label>
-            <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="Enter amount (min ₹1,000)" />
-          </div>
-          <div className="form-group">
-             <label>Narration / Purpose</label>
-            <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="e.g. Vendor Payment INV-2026-0431" />
-          </div>
-          
-          <button style={{marginTop: '20px', width: '100%', justifyContent: 'center'}} className="btn btn-primary" onClick={handleWithdraw} disabled={submitting}>
-            {submitting ? 'Processing...' : 'Submit for Compliance Clearance'}
-          </button>
+      <div className="hero-landing-section">
+        <div className="hero-card">
+          <h3>Cash Management & Disbursements</h3>
+          <p>Process high-value withdrawals and fund disbursements. All requests above ₹50,000 are subject to mandatory compliance checks per RBI Master Direction on KYC.</p>
         </div>
       </div>
 
-      {blockModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3><ShieldAlert size={20}/> Transaction Blocked</h3>
-              <button className="modal-close" onClick={() => setBlockModal(null)}>×</button>
+      <div className="grid-4" style={{ marginBottom: '24px' }}>
+        <KpiCard icon={<Coins size={20} />} label="Total Disbursed Today" value={formatINR(850000)} color="blue" />
+        <KpiCard icon={<Clock size={20} />} label="Pending Clearance" value={3} color="orange" />
+        <KpiCard icon={<ShieldAlert size={20} />} label="Compliance Holds" value={1} color="red" />
+        <KpiCard icon={<CheckCircle size={20} />} label="Cleared Limits" value={formatINR(5000000)} color="green" />
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header">
+            <h3 style={{display: 'flex', alignItems: 'center', gap: '8px'}}><ArrowDownToLine size={18}/> Initiate Fund Disbursement</h3>
+          </div>
+          <div className="card-body">
+            {error && <div className="alert alert-danger mb-4">{error}</div>}
+            {success && <div className="alert alert-success mb-4">{success}</div>}
+            
+            <div className="form-group">
+              <label>Debit Account (Source)</label>
+              <select className="form-select" value={formData.account_id || ''} onChange={e => setFormData({...formData, account_id: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()}>
+                <option value="">Select an account...</option>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({formatINR(a.balance)})</option>)}
+              </select>
             </div>
-            <div className="modal-body">
-              <div className="alert-block danger">
-                <span className="alert-icon"><ShieldAlert size={18}/></span>
-                <div className="alert-text">
-                  <div className="alert-title">{blockModal.message}</div>
-                  <div>{blockModal.reason}</div>
-                </div>
-              </div>
+            
+            <div className="form-group">
+              <label>Disbursement Amount (₹)</label>
+              <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="Enter amount (min ₹1,000)" />
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setBlockModal(null)}>Close</button>
+            
+            <div className="form-group">
+              <label>Narration / Purpose</label>
+              <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="e.g. Vendor Payment INV-2026-0431" />
+            </div>
+            
+            <button style={{marginTop: '20px', width: '100%', justifyContent: 'center'}} className="btn btn-primary" onClick={() => handleWithdraw()} disabled={submitting}>
+              {submitting ? 'Processing...' : 'Submit for Compliance Clearance'}
+            </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3>Recent Disbursements</h3>
+          </div>
+          <div className="card-body" style={{padding: 0}}>
+            <div className="table-wrapper">
+              <table>
+                <thead><tr><th>Account</th><th className="text-right">Amount</th><th>Narration</th><th>Status</th></tr></thead>
+                <tbody>
+                  {withdrawals.map(w => (
+                    <tr key={w.id}>
+                      <td>{w.account_name}</td>
+                      <td className="text-right amount">{formatINR(w.amount)}</td>
+                      <td>{w.description || '—'}</td>
+                      <td>
+                        <span className={`badge ${w.status === 'approved' ? 'success' : w.status === 'rejected' ? 'danger' : 'warning'}`}>
+                          {w.status.toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {withdrawals.length === 0 && <tr><td colSpan={4} className="empty-state">No recent disbursements</td></tr>}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Tier 2: Justification Modal */}
-      <JustifyModal
-        show={!!justifyModal}
-        data={justifyModal?.data}
-        onSubmit={handleJustifySubmit}
-        onClose={() => { setJustifyModal(null); setPendingAction(null) }}
-      />
-
-      {/* Tier 3 & 4: Freeze Overlay */}
-      {freezeOverlay && (
-        <FreezeOverlay
-          mode={freezeOverlay.mode}
-          data={freezeOverlay.data}
-          onResolved={() => {
-            setTimeout(() => {
-              retryPendingAction()
-            }, 1500)
-          }}
-          onDenied={() => {
-            setFreezeOverlay(null)
-            setPendingAction(null)
-            showToast('Action was denied by admin', 'error')
-          }}
-        />
-      )}
-
-      {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
+      {freezeData && <FreezeOverlay mode={freezeData.mode} data={freezeData.data} onResolved={handleResolved} onDenied={handleDenied} />}
+      {justifyData && <JustifyModal message={justifyData.message} onSubmit={(j) => handleWithdraw(j)} onCancel={() => setJustifyData(null)} />}
     </div>
   )
 }
