@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import FreezeOverlay from '../components/FreezeOverlay'
@@ -7,6 +8,7 @@ import JustifyModal from '../components/JustifyModal'
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
 export default function Customers() {
+  const navigate = useNavigate()
   const [customers, setCustomers] = useState([])
   const [stats, setStats] = useState({})
   const [search, setSearch] = useState('')
@@ -153,7 +155,7 @@ export default function Customers() {
           </div>
           <div className="table-wrapper">
             <table>
-              <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>PAN</th><th>Account</th><th className="text-right">Balance</th><th>Risk</th></tr></thead>
+              <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>PAN</th><th>Account</th><th className="text-right">Balance</th><th>Risk</th><th>Action</th></tr></thead>
               <tbody>
                 {customers.map(c => (
                   <tr key={c.id}>
@@ -164,6 +166,11 @@ export default function Customers() {
                     <td><span className="badge neutral">{c.account_type}</span></td>
                     <td className="text-right amount">{formatINR(c.balance)}</td>
                     <td>{riskBadge(c.risk_category)}</td>
+                    <td>
+                      <button className="btn btn-sm btn-primary" onClick={() => navigate(`/customers/${c.id}`)}>
+                        View Profile
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {customers.length === 0 && <tr><td colSpan={7} className="empty-state">No customers found</td></tr>}

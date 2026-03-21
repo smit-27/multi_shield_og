@@ -17,6 +17,7 @@ const { queryOne, runSql } = require('../db');
 const { signLocalToken, verifyJwt, KEYCLOAK_URL, DEV_MODE } = require('../middleware/keycloak');
 const { createStepUpChallenge, getStepUpChallenge, verifyStepUpStep } = require('../middleware/stepUpAuth');
 const crypto = require('crypto');
+const { logAuditEvent } = require('../security/auditLogger');
 
 /**
  * POST /api/zta/login
@@ -152,9 +153,10 @@ router.post('/login', async (req, res) => {
       [sessionId, authData.token]
     );
 
-    // Audit log
-    runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('zta_login', ?, ?)",
-      [JSON.stringify({ user_id: user.id, ip: req.ip, session_id: sessionId }), user.id]);
+    // Audit log (blockchain-anchored)
+    logAuditEvent('zta_login',
+      { user_id: user.id, ip: req.ip, session_id: sessionId },
+      user.id);
 
     res.json({
       access_token: token,
@@ -189,8 +191,9 @@ router.post('/logout', verifyJwt, (req, res) => {
     runSql("DELETE FROM zta_sessions WHERE id = ?", [user.session_id]);
     runSql("DELETE FROM banking_tokens WHERE session_id = ?", [user.session_id]);
   }
-  runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('zta_logout', ?, ?)",
-    [JSON.stringify({ user_id: user?.user_id, session_id: user?.session_id }), user?.user_id || 'unknown']);
+  logAuditEvent('zta_logout',
+    { user_id: user?.user_id, session_id: user?.session_id },
+    user?.user_id || 'unknown');
   res.json({ message: 'Logged out successfully' });
 });
 

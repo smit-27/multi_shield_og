@@ -4,6 +4,7 @@ const { queryAll, queryOne, runSql } = require('../db');
 const { analyzeTransactionRisk } = require('../engine/transactionRiskEngine');
 const { analyzeLoginBehaviorRisk } = require('../engine/riskEngine');
 const { makeDecision } = require('../engine/policyEngine');
+const { logAuditEvent } = require('../security/auditLogger');
 const crypto = require('crypto');
 
 router.post('/', async (req, res) => {
@@ -91,8 +92,19 @@ router.post('/', async (req, res) => {
     response.request_id = approvalResult.lastInsertRowid;
   }
 
-  runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('risk_analysis', ?, 'system')",
-    [JSON.stringify({ user_id: activity.user_id, action: activity.action, risk_score: blendedScore, transaction_score: txnResult.score, login_behavior_score: loginResult.score, decision: policyResult.decision, ml_score: loginResult.ml_score })]);
+  // Integrate blockchain auditing
+  logAuditEvent('risk_analysis', 
+    { 
+      user_id: activity.user_id, 
+      action: activity.action, 
+      risk_score: blendedScore, 
+      transaction_score: txnResult.score, 
+      login_behavior_score: loginResult.score, 
+      decision: policyResult.decision, 
+      ml_score: loginResult.ml_score 
+    }, 
+    'system'
+  );
 
   res.json(response);
 });

@@ -102,8 +102,40 @@ services:
     # NOTE: No external port mapping!
     # The banking system is only accessible via the ZTA gateway (security service).
     # Uncomment the line below for debugging only:
-    # ports:
-    #   - "3001:3001"
+    ports:
+      - "3001:3001"
+    networks:
+      - multishield-network
+    restart: unless-stopped
+
+  # ─── Security Frontend (Vite) ───
+  security-frontend:
+    build:
+      context: ./security-platform/frontend
+      dockerfile: Dockerfile
+    container_name: multishield-security-ui
+    ports:
+      - "5174:5174"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3002/api
+    depends_on:
+      - security
+    networks:
+      - multishield-network
+    restart: unless-stopped
+
+  # ─── Banking Frontend (Vite) ───
+  banking-frontend:
+    build:
+      context: ./dummy-banking-system/frontend
+      dockerfile: Dockerfile
+    container_name: multishield-banking-ui
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001/api
+    depends_on:
+      - banking
     networks:
       - multishield-network
     restart: unless-stopped

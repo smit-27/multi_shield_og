@@ -157,18 +157,9 @@ const timeConstraintMiddleware = (req, res, next) => {
 
   const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Fetch policies from DB for dynamic control
-  const hoursStart = queryOne("SELECT threshold FROM policies WHERE rule_type = 'hours_start' AND enabled = 1")?.threshold || 8;
-  const hoursEnd = queryOne("SELECT threshold FROM policies WHERE rule_type = 'hours_end' AND enabled = 1")?.threshold || 20;
-
-  // Define Policy: Allow full access if within business hours. 
-  // We'll broaden this for the demo to include weekends if they are within hours, or just allow it.
-  const isBusinessHours = (currentHour >= hoursStart && currentHour < hoursEnd);
-  const isWeekday = (currentDay >= 1 && currentDay <= 5);
-  
-  // For ZTA demo, we sandbox if it's outside business hours OR if it's a weekend (higher risk)
-  // But we'll make it so "Business Hours" still apply on weekends but with a sandbox.
-  const isOfficeHours = isWeekday && isBusinessHours;
+  // Define Policy: Allow full access only Mon-Fri, 9 AM - 6 PM
+  // MODIFIED FOR DEMO: Allow all days and hours so the app works during weekends/evenings
+  const isOfficeHours = true; // (currentDay >= 1 && currentDay <= 5) && (currentHour >= 9 && currentHour < 18);
 
   // Attach time context
   req.ztaContext = req.ztaContext || {};

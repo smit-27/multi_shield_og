@@ -79,14 +79,36 @@ function analyzeTransactionRisk(activity, overrides = {}) {
     factors.push({ factor: 'Bulk Data Export Detected', detail: `${activity.action} triggers data exfiltration monitoring`, score: 15, maxScore: 15 });
   }
 
-  // Factor 5: Role-action mismatch (0-10)
+  // Factor 5: Role-action mismatch & Insider Threat (0-90)
   const rolePerms = {
     'Treasury Operator': ['withdraw', 'transfer', 'view_balance', 'approve_transaction'],
     'Loan Officer': ['loan_approval', 'loan_rejection', 'view_loans'],
     'Database Admin': ['bulk_data_export', 'view_customers', 'export']
   };
   const allowed = rolePerms[activity.role] || [];
-  if (activity.role && !allowed.includes(activity.action)) {
+  
+  if (['Database Admin', 'Customer Support', 'IT'].includes(activity.role)) {
+    // Insider Threat: Financial Fraud
+    if (['withdraw', 'transfer'].includes(activity.action)) {
+      totalScore += 75;
+      factors.push({ factor: 'Insider Threat: Financial Abuse', detail: `"${activity.role}" attempting unauthorized financial transfer`, score: 75, maxScore: 75 });
+    }
+    // Insider Threat: Account Takeover
+    else if (activity.action === 'modify_contact') {
+      totalScore += 80;
+      factors.push({ factor: 'Insider Threat: Account Takeover', detail: `Privileged user attempting silent contact modification`, score: 80, maxScore: 80 });
+    }
+    // Insider Threat: Physical Fraud
+    else if (activity.action === 'issue_card') {
+      totalScore += 95; // Instant Admin Approval required
+      factors.push({ factor: 'Insider Threat: Physical Card Fraud', detail: `Privileged user attempting unauthorized card issuance`, score: 95, maxScore: 95 });
+    }
+    // General mismatch
+    else if (activity.role && !allowed.includes(activity.action)) {
+      totalScore += 10;
+      factors.push({ factor: 'Role-Action Mismatch', detail: `"${activity.role}" performing "${activity.action}" is outside scope`, score: 10, maxScore: 10 });
+    }
+  } else if (activity.role && !allowed.includes(activity.action)) {
     totalScore += 10;
     factors.push({ factor: 'Role-Action Mismatch', detail: `"${activity.role}" performing "${activity.action}" is outside normal scope`, score: 10, maxScore: 10 });
   }
