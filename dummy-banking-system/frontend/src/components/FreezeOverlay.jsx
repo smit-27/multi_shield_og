@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { ShieldAlert, ShieldCheck, Ban, Shield, AlertTriangle, MessageSquare } from 'lucide-react'
 
-const SECURITY_PLATFORM_URL = 'http://localhost:3002'
-const SECURITY_FRONTEND_URL = 'http://localhost:5174'
+const SECURITY_PLATFORM_URL = 'http://127.0.0.1:3002'
+const SECURITY_FRONTEND_URL = 'http://127.0.0.1:5174'
 
 export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
   const [timeLeft, setTimeLeft] = useState(30 * 60) // 30 minutes
@@ -11,6 +12,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
   const [adminResponse, setAdminResponse] = useState('')
   const [sending, setSending] = useState(false)
   const pollRef = useRef(null)
+  const popupRef = useRef(null)
 
   // Poll for status updates
   useEffect(() => {
@@ -23,9 +25,11 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           const result = await res.json()
           if (result.status === 'completed') {
             setStatus('completed')
+            if (popupRef.current) popupRef.current.close()
             onResolved?.()
           } else if (result.status === 'failed') {
             setStatus('failed')
+            if (popupRef.current) popupRef.current.close()
           }
         } else if ((mode === 'admin' || mode === 'mfa_escalated') && data?.request_id) {
           const res = await fetch(`${SECURITY_PLATFORM_URL}/api/approvals/check/${data.request_id}`)
@@ -75,7 +79,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
 
   const openMfa = () => {
     if (data?.challenge_id) {
-      window.open(`${SECURITY_FRONTEND_URL}/mfa/${data.challenge_id}`, '_blank', 'width=600,height=700')
+      popupRef.current = window.open(`${SECURITY_FRONTEND_URL}/mfa/${data.challenge_id}`, 'mfa_popup', 'width=600,height=700')
     }
   }
 
@@ -102,7 +106,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
     return (
       <div className="freeze-overlay">
         <div className="freeze-content resolved">
-          <div className="freeze-icon">✅</div>
+          <div className="freeze-icon"><ShieldCheck size={56} color="var(--success)" /></div>
           <h2>{status === 'completed' ? 'MFA Verification Successful' : 'Action Approved by Admin'}</h2>
           {adminResponse && <p className="admin-response">Admin: "{adminResponse}"</p>}
           <p className="freeze-subtitle">Unfreezing your session... You may now continue.</p>
@@ -117,7 +121,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
     return (
       <div className="freeze-overlay denied">
         <div className="freeze-content denied">
-          <div className="freeze-icon">🚫</div>
+          <div className="freeze-icon"><Ban size={56} color="var(--danger)" /></div>
           <h2>Action Denied by Admin</h2>
           <p className="admin-response">"{adminResponse}"</p>
           <p className="freeze-subtitle">This action has been permanently blocked. Contact your security administrator for more information.</p>
@@ -132,7 +136,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
     return (
       <div className="freeze-overlay">
         <div className="freeze-content escalated">
-          <div className="freeze-icon pulse-icon">🛑</div>
+          <div className="freeze-icon pulse-icon"><AlertTriangle size={56} color="var(--danger)" /></div>
           <h2>Verification Failed — System Locked</h2>
           <p className="freeze-subtitle">Your identity could not be securely verified. This action has been escalated. The system is locked for 30 minutes pending admin review.</p>
           
@@ -155,19 +159,19 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
         {/* MFA Mode */}
         {mode === 'mfa' && (
           <>
-            <div className="freeze-icon pulse-icon">🔐</div>
+            <div className="freeze-icon pulse-icon"><ShieldAlert size={48} color="var(--accent)" /></div>
             <h2>Multi-Factor Authentication Required</h2>
             <p className="freeze-subtitle">Your banking session is temporarily frozen. Complete MFA verification on the Security Platform to continue.</p>
             
             <div className="freeze-details">
               <div className="freeze-detail-row">
                 <span>Reason</span>
-                <span>{data?.reason}</span>
+                <span>{data?.message || data?.reason}</span>
               </div>
             </div>
 
             <button className="btn btn-primary freeze-action-btn" onClick={openMfa}>
-              🛡️ Open Security Platform for MFA
+              <Shield size={18} /> Open Security Platform for MFA
             </button>
             <p className="freeze-hint">A new window will open. Complete all 4 verification steps to unfreeze your session.</p>
           </>
@@ -176,7 +180,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
         {/* Admin Approval Mode */}
         {(mode === 'admin' || mode === 'mfa_escalated') && (
           <>
-            <div className="freeze-icon pulse-icon">🛑</div>
+            <div className="freeze-icon pulse-icon"><AlertTriangle size={48} color="var(--danger)" /></div>
             <h2>Pending Admin Approval</h2>
             <p className="freeze-subtitle">This action has been temporarily blocked due to security verification. System locked pending security approval (up to 30 minutes).</p>
 
@@ -191,12 +195,12 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
             <div className="freeze-details">
               <div className="freeze-detail-row">
                 <span>Reason</span>
-                <span>{data?.reason}</span>
+                <span>{data?.message || data?.reason}</span>
               </div>
             </div>
 
             <div className="message-section">
-              <h4>💬 Explain the reason for the action</h4>
+              <h4 style={{display:'flex', alignItems:'center', gap:'6px'}}><MessageSquare size={16}/> Explain the reason for the action</h4>
               <textarea
                 className="message-textarea"
                 placeholder="Explain the reason for this action..."

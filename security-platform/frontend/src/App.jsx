@@ -5,7 +5,7 @@ import PolicyOverrides from './pages/PolicyOverrides'
 import MfaChallenge from './pages/MfaChallenge'
 import { useState, useEffect } from 'react'
 
-const API = 'http://localhost:3002'
+const API = 'http://127.0.0.1:3002'
 
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`${API}${path}`, {

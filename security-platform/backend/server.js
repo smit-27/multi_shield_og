@@ -29,7 +29,11 @@ io.on('connection', (socket) => {
 
 initDashboardLogger(io);
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'], credentials: true }));
+app.use((req, res, next) => {
+  console.log(`[ZTA GW] ${req.method} ${req.path}`);
+  next();
+});
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 // DEBUG: Log all requests
@@ -76,10 +80,10 @@ async function start() {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`🛡️  Security Platform (ZTA Gateway) running on http://localhost:${PORT}`);
-    console.log(`   ZTA Auth:    POST http://localhost:${PORT}/api/zta/login`);
-    console.log(`   Banking:     /api/banking/* → http://localhost:3001/api/*`);
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`🛡️  Security Platform (ZTA Gateway) running on http://127.0.0.1:${PORT}`);
+    console.log(`   ZTA Auth:    POST http://127.0.0.1:${PORT}/api/zta/login`);
+    console.log(`   Banking:     /api/banking/* → http://127.0.0.1:3001/api/*`);
     console.log(`   MFA:         /api/mfa/*`);
     console.log(`   Analyze:     POST /api/analyze`);
     console.log(`   Socket.io:   Ready for dashboard connections`);

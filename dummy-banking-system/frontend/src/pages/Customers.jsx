@@ -4,6 +4,7 @@ import { apiFetch } from '../App'
 import KpiCard from '../components/KpiCard'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
+import { Users, CheckCircle, AlertTriangle, Coins, Download, Search } from 'lucide-react'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -132,10 +133,10 @@ export default function Customers() {
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon="👤" label="Total Customers" value={stats.total || 0} color="blue" />
-        <KpiCard icon="✅" label="Active Accounts" value={stats.active || 0} color="green" />
-        <KpiCard icon="⚠️" label="High Risk" value={stats.highRisk || 0} color="red" />
-        <KpiCard icon="💰" label="Total Deposits" value={formatINR(stats.totalBalance || 0)} color="purple" />
+        <KpiCard icon={<Users size={20} />} label="Total Customers" value={stats.total || 0} color="blue" />
+        <KpiCard icon={<CheckCircle size={20} />} label="Active Accounts" value={stats.active || 0} color="green" />
+        <KpiCard icon={<AlertTriangle size={20} />} label="High Risk" value={stats.highRisk || 0} color="red" />
+        <KpiCard icon={<Coins size={20} />} label="Total Deposits" value={formatINR(stats.totalBalance || 0)} color="purple" />
       </div>
 
       <div className="card">
@@ -143,13 +144,13 @@ export default function Customers() {
           <h3>Customer Records</h3>
           <div style={{display:'flex', gap:'8px'}}>
             <button className="btn btn-sm btn-outline" onClick={exportData} disabled={exporting}>
-              {exporting ? '⏳ Exporting...' : '📥 Export All'}
+              {exporting ? 'Exporting...' : <span style={{display:'flex', alignItems:'center', gap:'6px'}}><Download size={14}/> Export All</span>}
             </button>
           </div>
         </div>
         <div className="card-body">
           <div className="search-box">
-            <span className="search-icon">🔍</span>
+            <span className="search-icon"><Search size={14} /></span>
             <input className="form-input" placeholder="Search customers by name, email, PAN, phone..."
               value={search} onChange={e => setSearch(e.target.value)} style={{paddingLeft:'40px'}} />
           </div>

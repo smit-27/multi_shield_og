@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../App'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
+import { AlertTriangle, ArrowRightLeft, UserCircle, CreditCard, Home, FileText } from 'lucide-react'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -178,12 +179,12 @@ export default function CustomerDetail() {
         
         {/* Left Side Navigation Mockup */}
         <div style={{ width: '220px', background: 'white', borderRadius: '8px', padding: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <div style={{ background: '#f89c1e', color: 'white', padding: '12px', borderRadius: '6px', fontWeight: 'bold', marginBottom: '16px' }}>
-            🏠 Account
+          <div style={{ background: '#f89c1e', color: 'white', padding: '12px', borderRadius: '6px', fontWeight: 'bold', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Home size={16}/> Account
           </div>
           {['Cards', 'Loan', 'IRS', 'EFT', 'Shares', 'Money Exchange'].map(item => (
-            <div key={item} style={{ padding: '12px', color: '#555', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
-              📄 {item}
+            <div key={item} style={{ padding: '12px', color: '#555', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={14}/> {item}
             </div>
           ))}
         </div>
@@ -291,8 +292,8 @@ export default function CustomerDetail() {
 
           {/* Bottom Row: Privileged Actions (Insider Threat Vectors) */}
           <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '8px', border: '1px solid #ffeeba', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #ffeeba', paddingBottom: '12px', color: '#856404' }}>
-              ⚠️ Privileged Operations (Insider Threat Vectors)
+            <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #ffeeba', paddingBottom: '12px', color: '#856404', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={20}/> Privileged Operations (Insider Threat Vectors)
             </h4>
             <p style={{ fontSize: '13px', color: '#856404', marginBottom: '20px' }}>
               As a privileged user, you can perform actions on behalf of the customer. These actions are strictly monitored by the Zero Trust Architecture.
@@ -302,7 +303,7 @@ export default function CustomerDetail() {
               
               {/* Force Transfer */}
               <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '16px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                <h5 style={{ margin: '0 0 12px 0', color: '#d9534f' }}>💸 Financial Fraud (Transfer)</h5>
+                <h5 style={{ margin: '0 0 12px 0', color: '#d9534f', display: 'flex', alignItems: 'center', gap: '6px' }}><ArrowRightLeft size={16}/> Financial Fraud (Transfer)</h5>
                 <input type="number" placeholder="Amount (INR)" className="form-input" style={{ marginBottom: '8px', width: '100%' }} value={transferAmount} onChange={e => setTransferAmount(e.target.value)} />
                 <input type="text" placeholder="Destination AC (e.g. ACC004)" className="form-input" style={{ marginBottom: '12px', width: '100%' }} value={transferDest} onChange={e => setTransferDest(e.target.value)} />
                 <button className="btn btn-sm btn-primary" onClick={doTransferFraud} style={{ width: '100%' }}>Initiate Transfer</button>
@@ -310,7 +311,7 @@ export default function CustomerDetail() {
 
               {/* Account Takeover */}
               <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '16px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                <h5 style={{ margin: '0 0 12px 0', color: '#f0ad4e' }}>📧 Account Takeover (Modify Details)</h5>
+                <h5 style={{ margin: '0 0 12px 0', color: '#f0ad4e', display: 'flex', alignItems: 'center', gap: '6px' }}><UserCircle size={16}/> Account Takeover (Modify Details)</h5>
                 <input type="email" placeholder="New Email" className="form-input" style={{ marginBottom: '8px', width: '100%' }} value={newEmail} onChange={e => setNewEmail(e.target.value)} />
                 <input type="text" placeholder="New Phone" className="form-input" style={{ marginBottom: '12px', width: '100%' }} value={newPhone} onChange={e => setNewPhone(e.target.value)} />
                 <button className="btn btn-sm" onClick={doContactFraud} style={{ width: '100%', background: '#f0ad4e', color: 'white', border: 'none' }}>Change Details</button>
@@ -318,7 +319,7 @@ export default function CustomerDetail() {
 
               {/* Physical Fraud */}
               <div style={{ flex: 1, minWidth: '250px', background: 'white', padding: '16px', borderRadius: '6px', border: '1px solid #ddd' }}>
-                <h5 style={{ margin: '0 0 12px 0', color: '#5bc0de' }}>💳 Physical Fraud (Card Replacement)</h5>
+                <h5 style={{ margin: '0 0 12px 0', color: '#5bc0de', display: 'flex', alignItems: 'center', gap: '6px' }}><CreditCard size={16}/> Physical Fraud (Card Replacement)</h5>
                 <textarea placeholder="New Shipping Address..." className="form-input" rows="2" style={{ marginBottom: '12px', width: '100%' }} value={newAddress} onChange={e => setNewAddress(e.target.value)} />
                 <button className="btn btn-sm" onClick={doCardFraud} style={{ width: '100%', background: '#5bc0de', color: 'white', border: 'none' }}>Issue Replacement Card</button>
               </div>

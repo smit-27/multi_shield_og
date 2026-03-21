@@ -8,7 +8,7 @@
  */
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const BANKING_BACKEND_URL = process.env.BANKING_BACKEND_URL || 'http://localhost:3001';
+const BANKING_BACKEND_URL = process.env.BANKING_BACKEND_URL || 'http://127.0.0.1:3001';
 
 /**
  * Create a proxy middleware instance for forwarding to the banking system.
@@ -77,7 +77,9 @@ function createBankingProxy() {
  * Simple proxy function for non-middleware usage (manual forwarding)
  */
 async function forwardToBanking(path, method, body, ztaHeaders = {}) {
+  // If path is already an absolute URL (starts with http), use it directly
   const url = path.startsWith('http') ? path : `${BANKING_BACKEND_URL}${path}`;
+  
   const headers = {
     'Content-Type': 'application/json',
     'X-ZTA-Verified': 'true',
@@ -90,9 +92,15 @@ async function forwardToBanking(path, method, body, ztaHeaders = {}) {
   }
 
   const response = await fetch(url, options);
-  const data = await response.json();
-
-  return { status: response.status, data };
+  const text = await response.text();
+  
+  try {
+    const data = JSON.parse(text);
+    return { status: response.status, data };
+  } catch (err) {
+    console.error(`[ZTA Proxy] Failed to parse JSON from ${url}. Response status: ${response.status}. Body start: ${text.substring(0, 100)}`);
+    throw new Error(`Invalid JSON response from banking service: ${err.message}`);
+  }
 }
 
 module.exports = { createBankingProxy, forwardToBanking, BANKING_BACKEND_URL };

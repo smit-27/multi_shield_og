@@ -6,7 +6,9 @@ import Treasury from './pages/Treasury'
 import Loans from './pages/Loans'
 import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
-const API = 'http://localhost:3002'
+import Withdrawals from './pages/Withdrawals'
+import { Landmark, Search, Settings, Bell, AlertTriangle, Lock } from 'lucide-react'
+const API = 'http://127.0.0.1:3002'
 
 export const AuthContext = createContext(null)
 
@@ -14,8 +16,8 @@ export function useAuth() { return useContext(AuthContext) }
 
 export function BankLogo({ size = 48 }) {
   return (
-    <div className="bank-logo-v2" style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d2240', borderRadius: '50%', color: 'white', fontSize: size * 0.5 }}>
-      🏦
+    <div className="bank-logo-v2" style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d2240', borderRadius: '50%', color: 'white' }}>
+      <Landmark size={size * 0.55} />
     </div>
   )
 }
@@ -31,6 +33,7 @@ function remapPath(path) {
   if (path === '/api/auth/login') return '/api/zta/login'
   if (path === '/api/auth/me') return '/api/zta/session'
   if (path === '/api/auth/logout') return '/api/zta/logout'
+  if (path.startsWith('/api/zta/')) return path
   if (path.startsWith('/api/')) return '/api/banking' + path.slice(4)
   return path
 }
@@ -86,12 +89,12 @@ function Layout() {
 
   return (
     <div className="layout-root">
-      <div className="top-alert-banner">
-        ⚠️ CONFIDENTIAL SYSTEM: All operations are logged and monitored by the Federal Security Council. Unauthorized access is a felony.
+      <div className="top-alert-banner" style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'6px'}}>
+        <AlertTriangle size={14}/> CONFIDENTIAL SYSTEM: All operations are logged and monitored by the Federal Security Council. Unauthorized access is a felony.
       </div>
       
       <div className="secure-info-bar">
-        <span>🔒 SECURE END-TO-END ENCRYPTION ACTIVE</span>
+        <span style={{display:'flex', alignItems:'center', gap:'4px'}}><Lock size={12}/> SECURE END-TO-END ENCRYPTION ACTIVE</span>
         <span>•</span>
         <span>SESSION: {Math.random().toString(36).substring(7).toUpperCase()}</span>
         <span>•</span>
@@ -124,9 +127,9 @@ function Layout() {
             <select className="language-select"><option>English (US)</option></select>
           </div>
           <div className="portal-icons">
-            <button className="icon-btn">🔍</button>
-            <button className="icon-btn">⚙️</button>
-            <button className="icon-btn">🔔</button>
+            <button className="icon-btn"><Search size={14}/></button>
+            <button className="icon-btn"><Settings size={14}/></button>
+            <button className="icon-btn"><Bell size={14}/></button>
           </div>
         </div>
       </div>
@@ -136,16 +139,17 @@ function Layout() {
         <main className="main-content">
           <Routes>
             <Route path="/treasury" element={<Treasury />} />
+            <Route path="/withdrawals" element={<Withdrawals />} />
             <Route path="/loans" element={<Loans />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
-            <Route path="*" element={<Navigate to="/treasury" />} />
+            <Route path="*" element={<Navigate to="/customers" />} />
           </Routes>
         </main>
       </div>
 
       <div className="float-branding">
-        <span className="float-logo">🏛️</span>
+        <span className="float-logo"><Landmark size={14}/></span>
         National Bank of India
       </div>
     </div>
@@ -159,7 +163,7 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
-      apiFetch('/api/auth/me')
+      apiFetch('/api/zta/session')
         .then(d => setUser(d.user))
         .catch(() => { localStorage.removeItem('token'); setUser(null) })
         .finally(() => setLoading(false))
@@ -169,7 +173,7 @@ export default function App() {
   }, [])
 
   const login = async (username, password) => {
-    const data = await apiFetch('/api/auth/login', {
+    const data = await apiFetch('/api/zta/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     })
@@ -180,7 +184,7 @@ export default function App() {
   }
 
   const logout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    apiFetch('/api/zta/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('token')
     setUser(null)
   }
@@ -191,7 +195,7 @@ export default function App() {
     <AuthContext.Provider value={{ user, login, logout }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/treasury" /> : <Login />} />
+          <Route path="/login" element={user ? <Navigate to="/customers" /> : <Login />} />
           <Route path="/*" element={<Layout />} />
         </Routes>
       </BrowserRouter>

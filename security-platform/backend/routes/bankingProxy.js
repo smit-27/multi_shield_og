@@ -139,10 +139,13 @@ async function analyzeRequestRisk(req, res, next) {
   if (decisionResult === 'DENY') gatewayAction = 'BLOCKED';
   else if (decisionResult === 'SANDBOX' || decisionResult === 'FLAG' || decisionResult === 'REQUIRE_MFA') {
     // If we require MFA from standard DB logic, it's not strictly a sandbox route, but we'll mark as sandboxed contextually here for demo UI
-    gatewayAction = 'SANDBOXED'; 
+    gatewayAction = 'SANDBOXED';
     if (decisionResult === 'SANDBOX') {
        req.isSandboxed = true;
-       req.targetSystem = 'http://sandbox-banking-system:5000';
+       // Only set if not already set by earlier middleware (like contextVerifier)
+       if (!req.targetSystem || req.targetSystem.includes('sandbox-banking-system')) {
+           req.targetSystem = process.env.BANKING_BACKEND_URL || 'http://127.0.0.1:3001';
+       }
     }
   }
 
@@ -187,10 +190,14 @@ function extractAction(req) {
  */
 function injectBankingAuth(req, res, next) {
   const sessionId = req.ztaUser?.session_id;
+  console.log(`[ZTA Proxy] injecting auth for session_id: ${sessionId}`);
   if (sessionId) {
     const tokenRow = queryOne("SELECT banking_token FROM banking_tokens WHERE session_id = ?", [sessionId]);
     if (tokenRow?.banking_token) {
+      console.log(`[ZTA Proxy] Found banking token: ${tokenRow.banking_token.substring(0, 15)}...`);
       req.headers['authorization'] = `Bearer ${tokenRow.banking_token}`;
+    } else {
+      console.warn(`[ZTA Proxy] NO banking token found for session: ${sessionId}`);
     }
   }
   next();
@@ -207,10 +214,11 @@ router.use(injectBankingAuth);
 
 // Helper to determine target URL
 const getTargetUrl = (req, defaultPath) => {
+  const apiPath = defaultPath.startsWith('/api') ? defaultPath : `/api${defaultPath}`;
   if (req.isSandboxed && req.targetSystem) {
-    return `${req.targetSystem}${defaultPath}`;
+    return `${req.targetSystem}${apiPath}`;
   }
-  return `/api${defaultPath}`; // Default banking backend handles this via http-proxy-middleware URL logic or local mapped URL
+  return apiPath;
 };
 
 // Forward GET requests (read operations — no step-up needed)

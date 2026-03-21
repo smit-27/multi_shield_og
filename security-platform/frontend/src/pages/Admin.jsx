@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { apiFetch } from '../App';
+import { io } from 'socket.io-client';
 
 // Timeline data for last 24 hours
 const MOCK_TIMELINE = Array.from({ length: 24 }).map((_, i) => ({
@@ -43,7 +44,45 @@ const SectionHeader = ({ title }) => (
 
 export default function AdminDashboard() {
   const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
-  
+  const [mfaCodes, setMfaCodes] = useState([]);
+  const [trafficStats, setTrafficStats] = useState({ verified: 0, sandboxed: 0, blocked: 0 });
+
+  // Poll for active MFA codes
+  useEffect(() => {
+    const fetchCodes = () => {
+      fetch('http://127.0.0.1:3002/api/mfa/active/codes')
+        .then(res => res.json())
+        .then(data => setMfaCodes(data.challenges || []))
+        .catch(console.error)
+    }
+    fetchCodes()
+    const interval = setInterval(fetchCodes, 3000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const socket = io('http://127.0.0.1:3002')
+
+    socket.on('zta-activity', (data) => {
+      setActivities(prev => [data, ...prev].slice(0, 50))
+
+      setTrafficStats(prev => {
+        let { verified, sandboxed, blocked } = prev
+        if (data.action === 'BLOCKED' || data.action === 'AUTH_LOCKED') blocked++
+        else if (data.action === 'SANDBOXED') sandboxed++
+        else verified++
+        return { verified, sandboxed, blocked }
+      })
+    })
+
+    return () => socket.disconnect()
+  }, [])
+
+  const totalTraffic = trafficStats.verified + trafficStats.sandboxed + trafficStats.blocked;
+  const loadActiveThreats = trafficStats.blocked;
+  const riskIndex = ((trafficStats.blocked * 0.9 + trafficStats.sandboxed * 0.4) / (totalTraffic || 1) * 100).toFixed(1);
+
+
   const [stats, setStats] = useState({
     highRiskEvents: 0,
     activeSessions: 0,
@@ -220,26 +259,63 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Threat Categories (Fixed Sidebar) */}
-        <div style={{ width: '380px', display: 'flex', flexDirection: 'column' }}>
-          <SectionHeader title="Threat Categories" />
-          <div className="flex-1 flex flex-col gap-8 pt-4">
-            {threats.map((t, i) => {
-              // Pick a status color based on rank approx
-              const color = i === 0 ? COLORS.highText : i < 3 ? COLORS.medText : COLORS.lowText;
-              return (
-                <div key={i} className="flex flex-col gap-3">
-                  <div className="flex justify-between items-end">
-                    <span style={{ fontSize: '15px', fontWeight: 500, color: COLORS.textSecondary }}>{t.category}</span>
-                    <span className="font-mono" style={{ fontSize: '14px', color: COLORS.mono }}>{t.count}</span>
+        {/* Right Sidebar (Fixed) */}
+        <div style={{ width: '380px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* Threat Categories (From HEAD) */}
+          <div className="flex flex-col">
+            <SectionHeader title="Threat Categories" />
+            <div className="flex-1 flex flex-col gap-8 pt-4">
+              {threats.map((t, i) => {
+                const color = i === 0 ? COLORS.highText : i < 3 ? COLORS.medText : COLORS.lowText;
+                return (
+                  <div key={i} className="flex flex-col gap-3">
+                    <div className="flex justify-between items-end">
+                      <span style={{ fontSize: '15px', fontWeight: 500, color: COLORS.textSecondary }}>{t.category}</span>
+                      <span className="font-mono" style={{ fontSize: '14px', color: COLORS.mono }}>{t.count}</span>
+                    </div>
+                    <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                      <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', backgroundColor: color, borderRadius: '2px' }}></div>
+                    </div>
                   </div>
-                  <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
-                    <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', backgroundColor: color, borderRadius: '2px' }}></div>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
+
+          {/* Active MFA Codes (Adapted to Palantir design system) */}
+          <div className="flex flex-col">
+            <SectionHeader title="Active MFA Codes Tracker" />
+            <div className="flex flex-col gap-3 max-h-[320px] overflow-y-auto custom-scrollbar pr-1 pt-4">
+              {mfaCodes.length === 0 ? (
+                <div style={{ padding: '16px', backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderLight}`, borderRadius: '4px', fontSize: '12px', textAlign: 'center', color: COLORS.textSecondary }}>
+                  NO ACTIVE MFA SESSIONS
+                </div>
+              ) : (
+                [...mfaCodes]
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  .map((code, idx) => {
+                    const timeStr = new Date(code.created_at.includes('Z') || code.created_at.includes('+') ? code.created_at : code.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return (
+                      <div key={code.id} className="transition-fast" style={{ padding: '12px 16px', backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderLight}`, borderLeft: `2px solid ${COLORS.accent}`, borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ fontSize: '12px', fontFamily: 'IBM Plex Mono', color: COLORS.textTertiary, width: '24px' }}>#{idx + 1}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: COLORS.textPrimary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{code.username || code.user_id}</div>
+                          <div style={{ fontSize: '11px', color: COLORS.accent, textTransform: 'uppercase' }}>{code.action}</div>
+                        </div>
+                        <div style={{ fontSize: '11px', fontFamily: 'IBM Plex Mono', color: COLORS.textSecondary, textAlign: 'right' }}>
+                          <div>{timeStr}</div>
+                        </div>
+                        <div style={{ fontFamily: 'IBM Plex Mono', fontSize: '14px', fontWeight: 700, color: COLORS.accent, backgroundColor: COLORS.neuBg, padding: '4px 8px', borderRadius: '4px', border: `1px solid ${COLORS.borderActive}` }}>
+                          {code.otp_code}
+                        </div>
+                      </div>
+                    )
+                  })
+              )}
+            </div>
+          </div>
+          
         </div>
       </section>
 
@@ -274,7 +350,6 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </div>
       </section>
-
     </div>
   );
 }

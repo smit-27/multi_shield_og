@@ -92,6 +92,7 @@ router.post('/:challengeId/verify', (req, res) => {
   }
 
   const { value } = req.body;
+  
   const currentStep = challenge.step;
   let verified = false;
 

@@ -310,17 +310,6 @@ body {
   min-height: 90px;
 }
 .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.kpi-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 3px;
-}
-.kpi-card.blue::after { background: var(--accent); }
-.kpi-card.green::after { background: var(--success); }
-.kpi-card.orange::after { background: var(--warning); }
-.kpi-card.red::after { background: var(--danger); }
-.kpi-card.purple::after { background: var(--info); }
 
 .kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .kpi-value { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1.2; word-break: break-word; }

@@ -2,7 +2,7 @@
  * Security Check Middleware — calls Security Platform API before sensitive actions
  * Handles 4-tier risk decisions: ALLOW, JUSTIFY, REQUIRE_MFA, ADMIN_APPROVAL
  */
-const SECURITY_PLATFORM_URL = process.env.SECURITY_PLATFORM_URL || 'http://localhost:3002';
+const SECURITY_PLATFORM_URL = process.env.SECURITY_PLATFORM_URL || 'http://127.0.0.1:3002';
 
 function createSecurityCheck(actionType) {
   return async (req, res, next) => {

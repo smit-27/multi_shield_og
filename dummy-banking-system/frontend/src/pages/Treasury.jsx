@@ -4,6 +4,7 @@ import KpiCard from '../components/KpiCard'
 import Modal from '../components/Modal'
 import FreezeOverlay from '../components/FreezeOverlay'
 import JustifyModal from '../components/JustifyModal'
+import { Landmark, ArrowRightLeft, Coins, Activity, Clock, ShieldAlert, BadgeInfo, Zap } from 'lucide-react'
 
 const formatINR = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -11,7 +12,6 @@ export default function Treasury() {
   const [stats, setStats] = useState({})
   const [transactions, setTransactions] = useState([])
   const [accounts, setAccounts] = useState([])
-  const [showWithdraw, setShowWithdraw] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
   const [blockModal, setBlockModal] = useState(null)
   const [toast, setToast] = useState(null)
@@ -66,23 +66,7 @@ export default function Treasury() {
     showToast(data.message || err.message || 'An error occurred', 'error')
   }
 
-  const handleWithdraw = async () => {
-    setSubmitting(true)
-    const body = { account_id: formData.account_id, amount: Number(formData.amount), description: formData.description }
-    try {
-      const res = await apiFetch('/api/treasury/withdraw', { method: 'POST', body: JSON.stringify(body) })
-      if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
-        handleSecurityResponse(res, 'withdraw', body)
-        setShowWithdraw(false)
-        return
-      }
-      showToast(res.message)
-      setShowWithdraw(false); setFormData({}); load()
-    } catch (err) {
-      setShowWithdraw(false)
-      handleSecurityResponse(err, 'withdraw', body)
-    } finally { setSubmitting(false) }
-  }
+
 
   const handleTransfer = async () => {
     setSubmitting(true)
@@ -172,10 +156,10 @@ export default function Treasury() {
       </div>
 
       <div className="kpi-grid">
-        <KpiCard icon="💰" label="Total Balance" value={formatINR(stats.totalBalance || 0)} color="blue" change="↑ 2.4% from yesterday" />
-        <KpiCard icon="📊" label="Daily Volume" value={formatINR(stats.dailyVolume || 0)} color="green" />
-        <KpiCard icon="⏳" label="Pending Approvals" value={stats.pendingApprovals || 0} color="orange" />
-        <KpiCard icon="🚫" label="Blocked Transactions" value={stats.blockedTransactions || 0} color="red" />
+        <KpiCard icon={<Coins size={24} />} label="Total Balance" value={formatINR(stats.totalBalance || 0)} color="blue" change="↑ 2.4% from yesterday" />
+        <KpiCard icon={<Activity size={24} />} label="Daily Volume" value={formatINR(stats.dailyVolume || 0)} color="green" />
+        <KpiCard icon={<Clock size={24} />} label="Pending Approvals" value={stats.pendingApprovals || 0} color="orange" />
+        <KpiCard icon={<ShieldAlert size={24} />} label="Blocked Transactions" value={stats.blockedTransactions || 0} color="red" />
       </div>
 
       <div className="grid-2">
@@ -205,8 +189,7 @@ export default function Treasury() {
           <div className="card">
             <div className="card-header"><h3>Quick Actions</h3></div>
             <div className="card-body" style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              <button className="btn btn-primary" onClick={() => { setFormData({}); setShowWithdraw(true) }}>💸 Large Withdrawal</button>
-              <button className="btn btn-outline" onClick={() => { setFormData({}); setShowTransfer(true) }}>🔄 Internal Transfer</button>
+              <button className="btn btn-outline" onClick={() => { setFormData({}); setShowTransfer(true) }}><ArrowRightLeft size={16} /> Internal Transfer</button>
             </div>
           </div>
         </div>
@@ -238,29 +221,8 @@ export default function Treasury() {
         </div>
       </div>
 
-      {/* Withdraw Modal */}
-      <Modal show={showWithdraw} onClose={() => setShowWithdraw(false)} title="Large Withdrawal" icon="💸"
-        footer={<><button className="btn btn-outline" onClick={() => setShowWithdraw(false)}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleWithdraw} disabled={submitting}>{submitting ? 'Processing...' : 'Submit Withdrawal'}</button></>}>
-        <div className="form-group">
-          <label>Account</label>
-          <select className="form-select" value={formData.account_id || ''} onChange={e => setFormData({...formData, account_id: e.target.value})}>
-            <option value="">Select account</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({formatINR(a.balance)})</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Amount (₹)</label>
-          <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} placeholder="Enter amount" />
-        </div>
-        <div className="form-group">
-          <label>Description</label>
-          <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Reason for withdrawal" />
-        </div>
-      </Modal>
-
       {/* Transfer Modal */}
-      <Modal show={showTransfer} onClose={() => setShowTransfer(false)} title="Internal Transfer" icon="🔄"
+      <Modal show={showTransfer} onClose={() => setShowTransfer(false)} title="Internal Transfer" icon={<ArrowRightLeft size={20} />}
         footer={<><button className="btn btn-outline" onClick={() => setShowTransfer(false)}>Cancel</button>
           <button className="btn btn-primary" onClick={handleTransfer} disabled={submitting}>{submitting ? 'Processing...' : 'Submit Transfer'}</button></>}>
         <div className="form-group">
@@ -289,12 +251,12 @@ export default function Treasury() {
 
       {/* Legacy Security Block Modal (fallback) */}
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
-        title="Transaction Blocked" icon="🚨"
+        title="Transaction Blocked" icon={<ShieldAlert size={20}/>}
         footer={<button className="btn btn-outline" onClick={() => setBlockModal(null)}>Close</button>}>
         {blockModal && (
           <>
             <div className="alert-block danger">
-              <span className="alert-icon">🛑</span>
+              <span className="alert-icon"><ShieldAlert size={18}/></span>
               <div className="alert-text">
                 <div className="alert-title">{blockModal.message}</div>
                 <div>{blockModal.reason}</div>

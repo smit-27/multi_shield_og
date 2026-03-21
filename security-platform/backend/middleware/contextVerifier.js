@@ -167,7 +167,7 @@ const timeConstraintMiddleware = (req, res, next) => {
     hour: currentHour,
     day: currentDay,
     isBusinessHours: isOfficeHours,
-    isWeekday: (currentDay >= 0 && currentDay <= 6),
+    isWeekday: isWeekday,
     timestamp: now.toISOString(),
     riskContribution: isOfficeHours ? 0 : 15,
     isSimulated: !!overrideTime
@@ -180,8 +180,9 @@ const timeConstraintMiddleware = (req, res, next) => {
   if (!isOfficeHours) {
       // Apply Micro-segmentation: Force into Sandbox for off-hour activity
       req.isSandboxed = true;
-      req.targetSystem = 'http://sandbox-banking-system:5000';
-      console.log(`[ZTA ALERT] Off-hours access detected at ${now.toISOString()}. Segmenting traffic to Sandbox.`);
+      // POINT TO LOCAL BACKEND so data is still visible in this demo environment!
+      req.targetSystem = process.env.BANKING_BACKEND_URL || 'http://127.0.0.1:3001';
+      console.log(`[ZTA ALERT] Off-hours access detected at ${now.toISOString()}. Segmenting traffic to Sandbox at ${req.targetSystem}`);
       
       logToDashboard(
         req,

@@ -172,9 +172,12 @@ export default function MfaChallenge() {
     let scanAttempts = 0
     let unknownFaceCount = 0
     const maxAttempts = 50 // roughly 5 seconds at 100ms intervals
+    let foundMatch = false // Prevent duplicate concurrent submissions
 
     scanIntervalRef.current = setInterval(async () => {
       scanAttempts++
+      if (foundMatch) return; // Prevent overlapping executions if match already found
+
       if (scanAttempts > maxAttempts) {
         clearInterval(scanIntervalRef.current)
         setScanStatusMsg('Timeout: No registered face found in 5 seconds.')
@@ -202,6 +205,8 @@ export default function MfaChallenge() {
 
           // Ensure the match distance is extremely strict relative to the training data
           if (match.label !== 'unknown' && match.distance < 0.42) {
+            if (foundMatch) return;
+            foundMatch = true;
             clearInterval(scanIntervalRef.current)
             setScanStatusMsg(`Recognized: ${match.label} (Confidence: ${((1 - match.distance) * 100).toFixed(1)}%)`)
             setFaceDone(true)
@@ -211,7 +216,14 @@ export default function MfaChallenge() {
             setVerifying(true)
             try {
               const res = await apiFetch(`/api/mfa/${challengeId}/verify`, { method: 'POST', body: JSON.stringify({ value: 'face_verified' }) })
-              setChallenge(prev => ({ ...prev, step: res.step }))
+              
+              if (res.status === 'completed') {
+                setCompleted(true)
+                setChallenge(prev => ({ ...prev, step: 4, status: 'completed' }))
+                setTimeout(() => window.close(), 1500)
+              } else {
+                setChallenge(prev => ({ ...prev, step: res.step }))
+              }
             } catch (err) {
               setStepError('Server error recording face match')
             } finally {
@@ -250,6 +262,7 @@ export default function MfaChallenge() {
       if (res.status === 'completed') {
         setCompleted(true)
         setChallenge(prev => ({ ...prev, step: 4, status: 'completed' }))
+        setTimeout(() => window.close(), 1500)
       } else {
         setChallenge(prev => ({ ...prev, step: res.step }))
         setValue('')
