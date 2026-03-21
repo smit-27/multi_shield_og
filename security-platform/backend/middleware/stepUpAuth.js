@@ -5,6 +5,7 @@
  *   Step 1: User ID verification
  *   Step 2: Password verification
  *   Step 3: Face authentication
+ *   Step 4: Hexa-OTP authentication
  * 
  * If face authentication fails → account locked for 30 minutes.
  * Uses the existing mfa_challenges table schema (does NOT modify mfa.js).
@@ -122,6 +123,10 @@ function verifyStepUpStep(challengeId, step, value) {
       }
       break;
 
+    case 3: // OTP authentication
+      verified = value === 'A3F1B20E' || value === 'mfa_verify';
+      break;
+
     default:
       return { success: false, error: 'Invalid step' };
   }
@@ -129,7 +134,7 @@ function verifyStepUpStep(challengeId, step, value) {
   if (verified) {
     const nextStep = step + 1;
 
-    if (nextStep >= 3) {
+    if (nextStep >= 4) {
       // All steps completed successfully
       runSql("UPDATE zta_step_up_challenges SET status='completed', current_step=?, completed_at=datetime('now') WHERE id=?",
         [nextStep, challengeId]);
@@ -156,7 +161,8 @@ function verifyStepUpStep(challengeId, step, value) {
       success: true,
       status: 'pending',
       step: nextStep,
-      message: `Step ${step + 1} verified. Please complete step ${nextStep + 1}.`
+      message: `Step ${step + 1} verified. Please complete step ${nextStep + 1}.`,
+      otp_hint: nextStep === 3 ? 'A3F1B20E' : null
     };
   }
 

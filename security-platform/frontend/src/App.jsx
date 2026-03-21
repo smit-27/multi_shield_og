@@ -87,6 +87,11 @@ const injectedStyles = `
 .recharts-tooltip-wrapper {
   outline: none !important;
 }
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
 `;
 
 function Sidebar() {
