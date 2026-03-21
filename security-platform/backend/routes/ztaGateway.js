@@ -53,16 +53,51 @@ router.post('/login', async (req, res) => {
       }
 
       const tokenData = await tokenResponse.json();
+
+      // Synchronize with dummy-banking backend to get a banking token for proxying
+      const BANKING_URL = process.env.BANKING_BACKEND_URL || 'http://127.0.0.1:3001';
+      try {
+        const authResponse = await fetch(`${BANKING_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        if (authResponse.ok) {
+          const authData = await authResponse.json();
+          const sid = tokenData.session_state || crypto.randomBytes(16).toString('hex');
+          console.log(`[ZTA] Login Sync: sid=${sid}, banking_token=${authData.token.substring(0, 15)}...`);
+          
+          runSql(
+            "INSERT OR REPLACE INTO banking_tokens (session_id, banking_token) VALUES (?,?)",
+            [sid, authData.token]
+          );
+          
+          // Also create a ZTA session record to match
+          const expiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+          runSql(
+            "INSERT OR REPLACE INTO zta_sessions (id, user_id, trust_level, ip_address, last_verified, step_up_completed, created_at, expires_at) VALUES (?,?,?,?,datetime('now'),0,datetime('now'),?)",
+            [sid, authData.user.id, 'standard', req.ip, expiresAt]
+          );
+        }
+      } catch (err) {
+        console.warn('[ZTA] Failed to synchronize banking session:', err.message);
+      }
+
       return res.json({
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         expires_in: tokenData.expires_in,
-        token_type: 'Bearer'
+        token_type: 'Bearer',
+        session: {
+          id: tokenData.session_state,
+          trust_level: 'standard'
+        }
       });
     }
 
     // Dev mode: authenticate via dummy-banking API
-    const BANKING_URL = process.env.BANKING_BACKEND_URL || 'http://localhost:3001';
+    const BANKING_URL = process.env.BANKING_BACKEND_URL || 'http://127.0.0.1:3001';
     const authResponse = await fetch(`${BANKING_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

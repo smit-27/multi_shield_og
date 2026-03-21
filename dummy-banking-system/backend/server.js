@@ -5,7 +5,11 @@ const { initDb } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173'], credentials: true }));
+app.use((req, res, next) => {
+  console.log(`[BANKING] ${req.method} ${req.path}`);
+  next();
+});
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 async function start() {
@@ -31,8 +35,8 @@ async function start() {
     res.json({ status: 'ok', service: 'dummy-banking-system', timestamp: new Date().toISOString() });
   });
 
-  app.listen(PORT, () => {
-    console.log(`🏦 Dummy Banking System API running on http://localhost:${PORT}`);
+  app.listen(PORT, '127.0.0.1', () => {
+    console.log(`🏦 Dummy Banking System API running on http://127.0.0.1:${PORT}`);
   });
 }
 

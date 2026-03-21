@@ -242,18 +242,18 @@ export default function Treasury() {
           <button className="btn btn-primary" onClick={handleWithdraw} disabled={submitting}>{submitting ? 'Processing...' : 'Submit Withdrawal'}</button></>}>
         <div className="form-group">
           <label>Account</label>
-          <select className="form-select" value={formData.account_id || ''} onChange={e => setFormData({...formData, account_id: e.target.value})}>
+          <select className="form-select" value={formData.account_id || ''} onChange={e => setFormData({...formData, account_id: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()}>
             <option value="">Select account</option>
             {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({formatINR(a.balance)})</option>)}
           </select>
         </div>
         <div className="form-group">
           <label>Amount (₹)</label>
-          <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} placeholder="Enter amount" />
+          <input className="form-input" type="number" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="Enter amount" />
         </div>
         <div className="form-group">
           <label>Description</label>
-          <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Reason for withdrawal" />
+          <input className="form-input" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleWithdraw()} placeholder="Reason for withdrawal" />
         </div>
       </Modal>
 

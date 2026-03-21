@@ -232,6 +232,56 @@ export default function Admin() {
               </table>
             </div>
           </div>
+
+          {/* ── Active MFA Codes ── */}
+          <div className="rounded-xl overflow-hidden border border-[#2d2548] p-6" style={{ background: 'rgba(23, 17, 42, 0.7)' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-[11px] font-bold text-[#a09bb8] uppercase tracking-widest mb-0">Active MFA Verification Codes</h4>
+              <span className="text-[9px] font-mono text-[#635d7a]">Latest first · IST</span>
+            </div>
+            <div className="flex flex-col gap-3 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+              {mfaCodes.length === 0 ? (
+                <div className="p-4 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs text-center text-[#635d7a]">
+                  No active MFA sessions
+                </div>
+              ) : (
+                [...mfaCodes]
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  .map((code, idx) => {
+                    const istTime = new Date(
+                      code.created_at.includes('Z') || code.created_at.includes('+')
+                        ? code.created_at
+                        : code.created_at.replace(' ', 'T') + 'Z'
+                    ).toLocaleString('en-IN', {
+                      timeZone: 'Asia/Kolkata',
+                      hour: '2-digit', minute: '2-digit', second: '2-digit',
+                      hour12: true, day: '2-digit', month: 'short'
+                    })
+                    return (
+                      <div key={code.id} className="p-3 bg-[#1c1533] border border-[#3d2d6b] rounded-lg flex items-center gap-4 relative overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#10b981]"></div>
+                        {/* Serial number */}
+                        <div className="pl-2 text-[10px] font-mono text-[#635d7a] w-6 flex-shrink-0">#{idx + 1}</div>
+                        {/* User & action info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{code.username || code.user_id}</div>
+                          <div className="text-[9px] text-[#22d3ee] uppercase">{code.action}</div>
+                        </div>
+                        {/* IST Timestamp */}
+                        <div className="text-[9px] font-mono text-[#635d7a] text-right flex-shrink-0">
+                          <div>{istTime.split(', ')[0]}</div>
+                          <div>{istTime.split(', ')[1]}</div>
+                        </div>
+                        {/* OTP Code */}
+                        <div className="font-mono text-base font-bold text-[#10b981] tracking-widest bg-[#0a0515] px-3 py-1 rounded border border-[#10b98144] shadow-[0_0_10px_rgba(16,185,129,0.2)] flex-shrink-0">
+                          {code.otp_code}
+                        </div>
+                      </div>
+                    )
+                  })
+              )}
+            </div>
+          </div>
         </section>
 
         {/* ── Explainable AI Sidebar (Static Representation for Admin Center) ── */}
@@ -262,30 +312,8 @@ export default function Admin() {
               <button className="p-3 bg-[#f43f5e1a] border border-[#f43f5e33] rounded-lg text-xs font-semibold text-[#f43f5e] hover:bg-[#f43f5e33] transition-all m-0 w-full cursor-pointer">Halt System</button>
             </div>
 
-            {/* Active MFA Codes */}
-            <h4 className="text-[10px] font-bold text-[#635d7a] uppercase tracking-widest mb-4 mt-8">Active MFA Verification Codes</h4>
-            <div className="flex flex-col gap-3">
-              {mfaCodes.length === 0 ? (
-                <div className="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs text-center text-[#635d7a]">
-                  No active MFA sessions
-                </div>
-              ) : (
-                mfaCodes.map(code => (
-                  <div key={code.id} className="p-3 bg-[#1c1533] border border-[#3d2d6b] rounded-lg flex justify-between items-center group relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#10b981]"></div>
-                    <div className="pl-2">
-                      <div className="text-[10px] font-bold text-white mb-1 uppercase tracking-wider">{code.username || code.user_id}</div>
-                      <div className="text-[9px] text-[#22d3ee] uppercase">{code.action}</div>
-                    </div>
-                    <div className="font-mono text-lg font-bold text-[#10b981] tracking-widest bg-[#0a0515] px-2 py-1 rounded border border-[#10b98144] shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                      {code.otp_code}
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
-          </div>
-        </aside>
+          </aside>
       </div>
     </div>
   )

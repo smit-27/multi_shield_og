@@ -6,7 +6,7 @@ import Treasury from './pages/Treasury'
 import Loans from './pages/Loans'
 import Customers from './pages/Customers'
 
-const API = 'http://localhost:3002'
+const API = 'http://127.0.0.1:3002'
 
 export const AuthContext = createContext(null)
 
@@ -158,7 +158,7 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
-      apiFetch('/api/auth/me')
+      apiFetch('/api/zta/session')
         .then(d => setUser(d.user))
         .catch(() => { localStorage.removeItem('token'); setUser(null) })
         .finally(() => setLoading(false))
@@ -168,7 +168,7 @@ export default function App() {
   }, [])
 
   const login = async (username, password) => {
-    const data = await apiFetch('/api/auth/login', {
+    const data = await apiFetch('/api/zta/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     })
@@ -179,7 +179,7 @@ export default function App() {
   }
 
   const logout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    apiFetch('/api/zta/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('token')
     setUser(null)
   }
