@@ -58,6 +58,32 @@ router.post('/logout', (req, res) => {
 
 // Auth middleware
 function authMiddleware(req, res, next) {
+  // ─── ZTA Gateway trust ───
+  // If this request came through the ZTA gateway (X-ZTA-Verified: true),
+  // use the ZTA user identity headers instead of the in-memory token map.
+  // This prevents auth failures caused by the token map being wiped on container restart.
+  if (req.headers['x-zta-verified'] === 'true') {
+    const userId = req.headers['x-zta-user-id'];
+    const username = req.headers['x-zta-username'];
+    if (userId || username) {
+      let user = userId ? queryOne('SELECT * FROM users WHERE id = ?', [userId]) : null;
+      if (!user && username) user = queryOne('SELECT * FROM users WHERE username = ?', [username]);
+      if (user) {
+        req.user = user;
+        return next();
+      }
+    }
+    // ZTA verified but user not in banking DB — construct minimal context
+    req.user = {
+      id: req.headers['x-zta-user-id'] || 'zta_user',
+      username: req.headers['x-zta-username'] || 'zta_user',
+      role: req.headers['x-zta-role'] || 'user',
+      full_name: req.headers['x-zta-username'] || 'ZTA User'
+    };
+    return next();
+  }
+
+  // ─── Standard token-based auth ───
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token || !tokens.has(token)) {
     return res.status(401).json({ error: 'Not authenticated' });

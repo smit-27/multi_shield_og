@@ -140,9 +140,70 @@ async function initDb() {
     db.run("INSERT INTO customers VALUES ('CUST005','Global Exports Ltd','ops@globalexports.com','9876543214','AABCG7890K','567890123456','Chennai, Tamil Nadu','current',900000,'high',datetime('now'),'active')");
     db.run("INSERT INTO customers VALUES ('CUST006','Ramesh Gupta','ramesh.g@email.com','9876543215','ERPGR1234L','678901234567','Pune, Maharashtra','savings',100000,'medium',datetime('now'),'active')");
 
+    // Add unique accounts for each customer to link to (Fraud Vector prep)
+    db.run("INSERT INTO accounts VALUES ('ACC-C1','Vikram Corporate','current',500000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC-C2','Sunita Savings','savings',150000,'INR','active',datetime('now'))");
+    db.run("INSERT INTO accounts VALUES ('ACC-C3','TechCorp Operations','current',800000,'INR','active',datetime('now'))");
+    
+    // Link customers to accounts
+    db.run("CREATE TABLE IF NOT EXISTS customer_accounts (customer_id TEXT, account_id TEXT)");
+    db.run("INSERT INTO customer_accounts VALUES ('CUST001','ACC-C1')");
+    db.run("INSERT INTO customer_accounts VALUES ('CUST002','ACC-C2')");
+    db.run("INSERT INTO customer_accounts VALUES ('CUST003','ACC-C3')");
+
+    // Create cards table for Physical Fraud Vector
+    db.run(`
+      CREATE TABLE IF NOT EXISTS cards (
+        id TEXT PRIMARY KEY,
+        customer_id TEXT,
+        account_id TEXT,
+        card_number TEXT,
+        type TEXT,
+        issue_address TEXT,
+        status TEXT DEFAULT 'active'
+      )
+    `);
+    db.run("INSERT INTO cards VALUES ('CRD001','CUST001','ACC-C1','**** **** **** 1234','Credit','Mumbai, Maharashtra','active')");
+    db.run("INSERT INTO cards VALUES ('CRD002','CUST002','ACC-C2','**** **** **** 5678','Debit','Hyderabad, Telangana','active')");
+    db.run("INSERT INTO cards VALUES ('CRD003','CUST003','ACC-C3','**** **** **** 9012','Credit','Bengaluru, Karnataka','active')");
+
     saveDb();
-    console.log('✅ Database seeded with demo data');
+    console.log('✅ Database seeded with demo data (including new customer accounts and cards)');
   }
+
+  // Ensure tables exist even if previously seeded
+  db.run("CREATE TABLE IF NOT EXISTS customer_accounts (customer_id TEXT, account_id TEXT)");
+  db.run(`
+    CREATE TABLE IF NOT EXISTS cards (
+      id TEXT PRIMARY KEY,
+      customer_id TEXT,
+      account_id TEXT,
+      card_number TEXT,
+      type TEXT,
+      issue_address TEXT,
+      status TEXT DEFAULT 'active'
+    )
+  `);
+
+  // Retroactive migration for existing databases
+  try {
+    const accCount = db.exec('SELECT COUNT(*) FROM customer_accounts')[0]?.values[0]?.[0] || 0;
+    if (accCount === 0) {
+      db.run("INSERT OR IGNORE INTO accounts VALUES ('ACC-C1','Vikram Corporate','current',500000,'INR','active',datetime('now'))");
+      db.run("INSERT OR IGNORE INTO accounts VALUES ('ACC-C2','Sunita Savings','savings',150000,'INR','active',datetime('now'))");
+      db.run("INSERT OR IGNORE INTO accounts VALUES ('ACC-C3','TechCorp Operations','current',800000,'INR','active',datetime('now'))");
+      
+      db.run("INSERT INTO customer_accounts VALUES ('CUST001','ACC-C1')");
+      db.run("INSERT INTO customer_accounts VALUES ('CUST002','ACC-C2')");
+      db.run("INSERT INTO customer_accounts VALUES ('CUST003','ACC-C3')");
+
+      db.run("INSERT INTO cards VALUES ('CRD001','CUST001','ACC-C1','**** **** **** 1234','Credit','Mumbai, Maharashtra','active')");
+      db.run("INSERT INTO cards VALUES ('CRD002','CUST002','ACC-C2','**** **** **** 5678','Debit','Hyderabad, Telangana','active')");
+      db.run("INSERT INTO cards VALUES ('CRD003','CUST003','ACC-C3','**** **** **** 9012','Credit','Bengaluru, Karnataka','active')");
+      saveDb();
+      console.log('✅ Applied retroactive migration for customer accounts and cards');
+    }
+  } catch(e) { console.error('Migration error:', e); }
 
   return db;
 }

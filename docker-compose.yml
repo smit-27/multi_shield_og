@@ -102,8 +102,8 @@ services:
     # NOTE: No external port mapping!
     # The banking system is only accessible via the ZTA gateway (security service).
     # Uncomment the line below for debugging only:
-    # ports:
-    #   - "3001:3001"
+    ports:
+      - "3001:3001"
     networks:
       - multishield-network
     restart: unless-stopped

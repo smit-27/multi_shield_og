@@ -5,7 +5,7 @@ import Login from './pages/Login'
 import Treasury from './pages/Treasury'
 import Loans from './pages/Loans'
 import Customers from './pages/Customers'
-
+import CustomerDetail from './pages/CustomerDetail'
 const API = 'http://localhost:3002'
 
 export const AuthContext = createContext(null)
@@ -138,6 +138,7 @@ function Layout() {
             <Route path="/treasury" element={<Treasury />} />
             <Route path="/loans" element={<Loans />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route path="*" element={<Navigate to="/treasury" />} />
           </Routes>
         </main>

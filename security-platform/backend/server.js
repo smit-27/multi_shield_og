@@ -32,6 +32,12 @@ initDashboardLogger(io);
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'], credentials: true }));
 app.use(express.json());
 
+// DEBUG: Log all requests
+app.use((req, res, next) => {
+  console.log(`[ZTA Proxy] ${req.method} ${req.path}`);
+  next();
+});
+
 async function start() {
   await initDb();
 
