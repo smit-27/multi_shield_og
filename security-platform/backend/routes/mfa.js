@@ -17,7 +17,30 @@ router.get('/active/codes', (req, res) => {
 
 // GET /api/mfa/:challengeId — Get challenge status
 router.get('/:challengeId', (req, res) => {
-  const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  const challengeId = req.params.challengeId;
+
+  if (challengeId.startsWith('STEPUP-')) {
+    const { getStepUpChallenge } = require('../middleware/stepUpAuth');
+    const challenge = getStepUpChallenge(challengeId);
+    if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
+
+    return res.json({
+      id: challenge.id,
+      user_id: challenge.user_id,
+      username: challenge.username,
+      role: challenge.role,
+      action: challenge.action,
+      amount: challenge.amount,
+      risk_score: challenge.risk_score,
+      status: challenge.status,
+      step: challenge.current_step,
+      attempts: challenge.attempts,
+      created_at: challenge.created_at,
+      completed_at: challenge.completed_at
+    });
+  }
+
+  const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [challengeId]);
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
 
   res.json({
@@ -38,7 +61,27 @@ router.get('/:challengeId', (req, res) => {
 
 // POST /api/mfa/:challengeId/verify — Verify current MFA step
 router.post('/:challengeId/verify', (req, res) => {
-  const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  const challengeId = req.params.challengeId;
+
+  if (challengeId.startsWith('STEPUP-')) {
+    const { getStepUpChallenge, verifyStepUpStep } = require('../middleware/stepUpAuth');
+    const challenge = getStepUpChallenge(challengeId);
+    if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
+
+    const { value } = req.body;
+    const result = verifyStepUpStep(challengeId, challenge.current_step, value);
+
+    if (result.success) {
+      return res.json(result);
+    } else {
+      if (result.account_locked || result.status === 'failed') {
+        return res.status(403).json(result);
+      }
+      return res.status(401).json(result);
+    }
+  }
+
+  const challenge = queryOne('SELECT * FROM mfa_challenges WHERE id = ?', [challengeId]);
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
 
   if (challenge.status === 'completed') {
@@ -149,7 +192,14 @@ router.post('/:challengeId/verify', (req, res) => {
 
 // GET /api/mfa/:challengeId/otp — Get OTP (for admin portal only)
 router.get('/:challengeId/otp', (req, res) => {
-  const challenge = queryOne('SELECT otp_code FROM mfa_challenges WHERE id = ?', [req.params.challengeId]);
+  const challengeId = req.params.challengeId;
+  
+  if (challengeId.startsWith('STEPUP-')) {
+    // Step-up challenges don't have OTPs
+    return res.status(400).json({ error: 'Step-up challenges do not use OTP' });
+  }
+
+  const challenge = queryOne('SELECT otp_code FROM mfa_challenges WHERE id = ?', [challengeId]);
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
   res.json({ otp: challenge.otp_code });
 });

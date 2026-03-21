@@ -5,57 +5,42 @@
    MFA:         /api/mfa/*
    Analyze:     POST /api/analyze
    Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: pxtpTvoiGTPBjKoxAAAB
-[ZTA Dashboard] Client connected: -kzFMHr4iIypZ4pHAAAE
-/app/routes/analyze.js:30
-  blendedScore = Math.max(blendedScore, loginResult.score % 101);
-               ^
-
-TypeError: Assignment to constant variable.
-    at /app/routes/analyze.js:30:16
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-
-Node.js v20.20.1
-🛡️  Security Platform (ZTA Gateway) running on http://localhost:3002
-   ZTA Auth:    POST http://localhost:3002/api/zta/login
-   Banking:     /api/banking/* → http://localhost:3001/api/*
-   MFA:         /api/mfa/*
-   Analyze:     POST /api/analyze
-   Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: ARC5Up71LNFA1jziAAAB
-[ZTA Dashboard] Client connected: P_z6PzNnlJKVUyDCAAAD
-/app/routes/analyze.js:30
-  blendedScore = Math.max(blendedScore, loginResult.score % 101);
-               ^
-
-TypeError: Assignment to constant variable.
-    at /app/routes/analyze.js:30:16
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-
-Node.js v20.20.1
-🛡️  Security Platform (ZTA Gateway) running on http://localhost:3002
-   ZTA Auth:    POST http://localhost:3002/api/zta/login
-   Banking:     /api/banking/* → http://localhost:3001/api/*
-   MFA:         /api/mfa/*
-   Analyze:     POST /api/analyze
-   Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: GCUtvZm-rkxzZWwHAAAB
-[ZTA Dashboard] Client connected: xOCx1BDitL-Uu2RfAAAD
-/app/routes/analyze.js:30
-  blendedScore = Math.max(blendedScore, loginResult.score % 101);
-               ^
-
-TypeError: Assignment to constant variable.
-    at /app/routes/analyze.js:30:16
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-
-Node.js v20.20.1
-🛡️  Security Platform (ZTA Gateway) running on http://localhost:3002
-   ZTA Auth:    POST http://localhost:3002/api/zta/login
-   Banking:     /api/banking/* → http://localhost:3001/api/*
-   MFA:         /api/mfa/*
-   Analyze:     POST /api/analyze
-   Socket.io:   Ready for dashboard connections
-[ZTA Dashboard] Client connected: LUPUI9nBGskoG8RUAAAC
-[ZTA Dashboard] Client connected: 2e5YArI5eKv5etTWAAAD
-[ZTA Dashboard] Client disconnected: LUPUI9nBGskoG8RUAAAC
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:37.570Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:37.966Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:37.994Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/stats
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:38.211Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/balances
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/transactions
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/stats
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:38.379Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:38.402Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/transactions
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/balances
+[ZTA Dashboard] Client connected: 4LBfYHUh3KZqNGDvAAAC
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:46.764Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:46.777Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:46.791Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/balances
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/transactions
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/stats
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:46.989Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:46.999Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:06:47.008Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/balances
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/stats
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/transactions
+[ZTA Dashboard] Client disconnected: 4LBfYHUh3KZqNGDvAAAC
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:09:52.628Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:09:52.635Z. Segmenting traffic to Sandbox.
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:09:52.664Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/stats
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:09:52.842Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/balances
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/transactions
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:09:52.887Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/stats
+[ZTA ALERT] Off-hours access detected at 2026-03-21T03:09:52.925Z. Segmenting traffic to Sandbox.
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/balances
+[ZTA Proxy] GET error: Failed to parse URL from http://banking:3001http://sandbox-banking-system:5000/treasury/transactions
+[ZTA Dashboard] Client connected: tPJjyugE1sWmxaQkAAAF

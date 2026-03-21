@@ -167,7 +167,11 @@ router.post('/logout', verifyJwt, (req, res) => {
  */
 router.get('/session', verifyJwt, (req, res) => {
   const user = req.ztaUser;
-  const session = queryOne("SELECT * FROM zta_sessions WHERE user_id = ?", [user.user_id]);
+  const session = queryOne("SELECT * FROM zta_sessions WHERE session_id = ? OR user_id = ?", [user.session_id, user.user_id]);
+
+  if (!session) {
+    return res.status(401).json({ error: 'Session expired or invalid', message: 'Your session could not be found.' });
+  }
 
   res.json({
     user: {
