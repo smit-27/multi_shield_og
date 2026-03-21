@@ -1,13 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Admin from './pages/Admin'
-import Monitoring from './pages/Monitoring'
 import Incidents from './pages/Incidents'
 import PolicyOverrides from './pages/PolicyOverrides'
-import PredictiveIsolation from './pages/PredictiveIsolation'
-import ForensicAudit from './pages/ForensicAudit'
-import ExplainableAI from './pages/ExplainableAI'
 import MfaChallenge from './pages/MfaChallenge'
-import ApprovalQueue from './pages/ApprovalQueue'
 import { useState, useEffect } from 'react'
 
 const API = 'http://localhost:3002'
@@ -39,6 +34,61 @@ export function Icon({ name, size = 24, color = 'currentColor' }) {
 }
 
 
+const COLORS = {
+  base: '#0A0C0F',
+  surface: '#0F1217',
+  elevated: '#151921',
+  accent: '#3D7EFF',
+  borderLight: 'rgba(255,255,255,0.055)',
+  border: 'rgba(255,255,255,0.11)',
+  textPrimary: '#E8EAF0',
+  textSecondary: '#6B7280',
+  textTertiary: '#3D4451',
+  mono: '#A8B5C8',
+  highBg: 'rgba(139,38,53,0.15)',
+  highText: '#C4404F',
+  medBg: 'rgba(122,92,30,0.15)',
+  medText: '#C49A3C',
+  lowBg: 'rgba(28,74,53,0.15)',
+  lowText: '#3D9E6E',
+};
+
+const injectedStyles = `
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Syne:wght@600;700&family=IBM+Plex+Mono:wght@400&display=swap');
+
+.dashboard-root {
+  font-family: 'Inter', sans-serif;
+  color: ${COLORS.textPrimary};
+  background-color: ${COLORS.base};
+}
+.font-syne {
+  font-family: 'Syne', sans-serif;
+}
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+.transition-fast {
+  transition: all 0.1s ease;
+}
+*:focus-visible {
+  outline: 1px solid ${COLORS.accent};
+  outline-offset: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 0px;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+`;
+
 function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -55,34 +105,68 @@ function Sidebar() {
 
   const items = [
     { path: '/admin', label: 'Admin Dashboard', icon: 'settings' },
-    { path: '/monitoring', label: 'Live Monitoring', icon: 'monitoring' },
-    { path: '/predictive-isolation', label: 'Predictive Isolation', icon: 'shield' },
-    { path: '/forensic-audit', label: 'Forensic Audit', icon: 'ai' },
-    { path: '/incidents', label: 'Incident Management', icon: 'incident' },
-    { path: '/approvals', label: 'Approval Queue', icon: 'check', badge: pendingCount },
+    { path: '/incidents', label: 'Incident Management', icon: 'incident', badge: pendingCount },
     { path: '/policy-overrides', label: 'Policy Overrides', icon: 'settings' },
   ]
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <h1><span><Icon name="shield" size={32} /></span> MultiShield</h1>
-        <p>Zero Trust Security</p>
+    <aside 
+      style={{ width: '212px', backgroundColor: COLORS.base, borderRight: `1px solid ${COLORS.borderLight}` }}
+      className="flex flex-col flex-shrink-0 h-screen"
+    >
+      {/* Logo Area */}
+      <div style={{ padding: '24px 20px', borderBottom: `1px solid ${COLORS.borderLight}` }}>
+        <div className="flex items-center gap-2 mb-1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={COLORS.textPrimary} strokeWidth="2.5" strokeLinecap="square" strokeLinejoin="miter">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span className="font-syne" style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.15em', color: COLORS.textPrimary, textTransform: 'uppercase' }}>MULTISHIELD</span>
+        </div>
+        <div style={{ fontSize: '9px', color: COLORS.textTertiary, letterSpacing: '0.2em', textTransform: 'uppercase', paddingLeft: '26px' }}>
+          ZERO TRUST PLATFORM
+        </div>
       </div>
-      <nav className="sidebar-nav">
-        {items.map(item => (
-          <button key={item.path}
-            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-            onClick={() => navigate(item.path)}>
-            <span className="icon"><Icon name={item.icon} size={20} /></span>
-            {item.label}
-            {item.badge > 0 && <span className="nav-badge">{item.badge}</span>}
-          </button>
-        ))}
+
+      {/* Navigation */}
+      <nav className="flex-1" style={{ paddingTop: '24px', paddingBottom: '24px' }}>
+        {items.map(item => {
+          const isActive = location.pathname === item.path;
+          return (
+            <div 
+              key={item.path}
+              className="flex items-center justify-between cursor-pointer transition-fast" 
+              style={{ 
+                height: '44px',
+                padding: '0 16px 0 16px', 
+                backgroundColor: isActive ? 'rgba(61,126,255,0.06)' : 'transparent', 
+                borderLeft: `3px solid ${isActive ? COLORS.accent : 'transparent'}`
+              }}
+              onClick={() => navigate(item.path)}
+            >
+              <div className="flex items-center gap-3">
+                <div style={{ opacity: isActive ? 1 : 0.4 }}>
+                  <Icon name={item.icon} size={18} color={isActive ? COLORS.accent : COLORS.textPrimary} />
+                </div>
+                <span style={{ fontSize: '14px', fontWeight: 500, color: isActive ? COLORS.textPrimary : COLORS.textSecondary }}>{item.label}</span>
+              </div>
+              
+              {item.badge > 0 && (
+                <span className="font-mono" style={{ fontSize: '11px', backgroundColor: COLORS.highBg, color: COLORS.highText, padding: '2px 6px', borderRadius: '4px' }}>{item.badge}</span>
+              )}
+            </div>
+          )
+        })}
       </nav>
-      <div className="sidebar-footer">
-        <div className="status-indicator"><span className="pulse" /> System Active</div>
-        <div className="version">v1.0 — AI Engine Online</div>
+
+      {/* User Info Bottom */}
+      <div style={{ padding: '20px', borderTop: `1px solid ${COLORS.borderLight}` }} className="flex items-center gap-3">
+        <div className="font-mono" style={{ width: '28px', height: '28px', backgroundColor: COLORS.elevated, border: `1px solid rgba(255,255,255,0.08)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: COLORS.textPrimary, borderRadius: '2px' }}>
+          SA
+        </div>
+        <div className="flex flex-col">
+          <span style={{ fontSize: '13px', fontWeight: 500, color: COLORS.textPrimary }}>System Admin</span>
+          <span style={{ fontSize: '11px', color: COLORS.textSecondary }}>Superuser</span>
+        </div>
       </div>
     </aside>
   )
@@ -108,20 +192,18 @@ export default function App() {
         
         {/* Main app layout with sidebar */}
         <Route path="/*" element={
-          <div className="layout">
+          <div className="dashboard-root flex overflow-hidden w-screen h-screen">
+            <style>{injectedStyles}</style>
             <Sidebar />
-            <main className="main-content">
-              <Routes>
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/monitoring" element={<Monitoring />} />
-                <Route path="/incidents" element={<Incidents />} />
-                <Route path="/approvals" element={<ApprovalQueue />} />
-                <Route path="/policy-overrides" element={<PolicyOverrides />} />
-                <Route path="/predictive-isolation" element={<PredictiveIsolation />} />
-                <Route path="/forensic-audit" element={<ForensicAudit />} />
-                <Route path="/explainable-ai" element={<ExplainableAI />} />
-                <Route path="*" element={<Navigate to="/forensic-audit" />} />
-              </Routes>
+            <main className="flex-1 overflow-y-auto custom-scrollbar" style={{ backgroundColor: COLORS.base }}>
+              <div style={{ maxWidth: '1400px', margin: '0 auto 0 0', width: '100%', padding: '0' }}>
+                <Routes>
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/incidents" element={<Incidents />} />
+                  <Route path="/policy-overrides" element={<PolicyOverrides />} />
+                  <Route path="*" element={<Navigate to="/admin" />} />
+                </Routes>
+              </div>
             </main>
           </div>
         } />

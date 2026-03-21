@@ -37,7 +37,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           } else if (result.status === 'denied') {
             setStatus('denied')
             setAdminResponse(result.admin_response || 'No reason provided')
-            onDenied?.()
+            // Removed automatic onDenied?.() so the popup stays open for the user to read
           }
         }
       } catch (err) {

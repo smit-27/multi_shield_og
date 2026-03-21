@@ -1,292 +1,280 @@
-import { useState, useEffect } from 'react'
-import { io } from 'socket.io-client'
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { apiFetch } from '../App';
 
-export default function Admin() {
-  const [activities, setActivities] = useState([])
-  const [trafficStats, setTrafficStats] = useState({ verified: 0, sandboxed: 0, blocked: 0 })
-  const [serverTime, setServerTime] = useState(new Date())
-  const [mfaCodes, setMfaCodes] = useState([])
+// Timeline data for last 24 hours
+const MOCK_TIMELINE = Array.from({ length: 24 }).map((_, i) => ({
+  hour: `${i.toString().padStart(2, '0')}:00`,
+  high: Math.floor(Math.random() * 10),
+  medium: Math.floor(Math.random() * 20),
+  low: Math.floor(Math.random() * 30),
+}));
 
-  // Keep a live clock updating
-  useEffect(() => {
-    const timer = setInterval(() => setServerTime(new Date()), 100)
-    return () => clearInterval(timer)
-  }, [])
+// === THEME CONSTANTS ===
+const COLORS = {
+  base: '#0A0C0F',
+  surface: '#0F1217',
+  elevated: '#151921',
+  accent: '#3D7EFF',
+  borderLight: 'rgba(255,255,255,0.055)',
+  borderActive: 'rgba(255,255,255,0.11)',
+  textPrimary: '#E8EAF0',
+  textSecondary: '#6B7280',
+  textTertiary: '#3D4451',
+  mono: '#A8B5C8',
+  highBg: 'rgba(139,38,53,0.15)',
+  highText: '#C4404F',
+  medBg: 'rgba(122,92,30,0.15)',
+  medText: '#C49A3C',
+  lowBg: 'rgba(28,74,53,0.15)',
+  lowText: '#3D9E6E',
+  neuBg: 'rgba(26,46,74,0.15)',
+  neuText: '#4A8CC4',
+};
 
-  // Poll for active MFA codes
-  useEffect(() => {
-    const fetchCodes = () => {
-      fetch('http://localhost:3002/api/mfa/active/codes')
-        .then(res => res.json())
-        .then(data => setMfaCodes(data.challenges || []))
-        .catch(console.error)
-    }
-    fetchCodes()
-    const interval = setInterval(fetchCodes, 3000)
-    return () => clearInterval(interval)
-  }, [])
+const SectionHeader = ({ title }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+    <span className="font-syne" style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: COLORS.textTertiary }}>
+      {title}
+    </span>
+    <div style={{ flex: 1, height: '1px', backgroundColor: COLORS.borderLight }}></div>
+  </div>
+);
 
-  useEffect(() => {
-    const socket = io('http://localhost:3002')
-
-    socket.on('zta-activity', (data) => {
-      setActivities(prev => [data, ...prev].slice(0, 50))
-
-      setTrafficStats(prev => {
-        let { verified, sandboxed, blocked } = prev
-        if (data.action === 'BLOCKED' || data.action === 'AUTH_LOCKED') blocked++
-        else if (data.action === 'SANDBOXED') sandboxed++
-        else verified++
-        return { verified, sandboxed, blocked }
-      })
-    })
-
-    return () => socket.disconnect()
-  }, [])
-
-  const totalTraffic = trafficStats.verified + trafficStats.sandboxed + trafficStats.blocked
-  const loadActiveThreats = trafficStats.blocked
-  const riskIndex = ((trafficStats.blocked * 0.9 + trafficStats.sandboxed * 0.4) / (totalTraffic || 1) * 100).toFixed(1)
+export default function AdminDashboard() {
+  const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
   
-  const formatClock = (date) => {
-    const h = String(date.getHours()).padStart(2, '0')
-    const m = String(date.getMinutes()).padStart(2, '0')
-    const s = String(date.getSeconds()).padStart(2, '0')
-    const ms = String(Math.floor(date.getMilliseconds() / 10)).padStart(2, '0')
-    return `${h}:${m}:${s}:${ms}`
-  }
+  const [stats, setStats] = useState({
+    highRiskEvents: 0,
+    activeSessions: 0,
+    eventsToday: 0
+  });
+  const [activities, setActivities] = useState([]);
+  const [threats, setThreats] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [statsRes, activityRes, threatsRes] = await Promise.all([
+        apiFetch('/api/dashboard/stats'),
+        apiFetch('/api/dashboard/activity'),
+        apiFetch('/api/dashboard/threats')
+      ]);
+      setStats(statsRes);
+      setActivities(activityRes);
+      setThreats(threatsRes);
+      setTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    const timer = setInterval(fetchDashboardData, 10000); // refresh every 10s
+    return () => clearInterval(timer);
+  }, []);
+
+  const getRiskStatus = (levelStr) => {
+    const level = (levelStr || '').toLowerCase();
+    if (level === 'high' || level === 'critical') return { bg: COLORS.highBg, text: COLORS.highText };
+    if (level === 'medium' || level === 'warning') return { bg: COLORS.medBg, text: COLORS.medText };
+    if (level === 'low' || level === 'safe') return { bg: COLORS.lowBg, text: COLORS.lowText };
+    return { bg: COLORS.neuBg, text: COLORS.neuText };
+  };
 
   return (
-    <div className="flex-1 p-8 relative" style={{ backgroundColor: '#0f0b1e', color: '#eae6f5', fontFamily: "'Inter', sans-serif" }}>
-      {/* ── Background Cyber Grid Overlay ── */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(rgba(124, 92, 252, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(124, 92, 252, 0.05) 1px, transparent 1px)",
-        backgroundSize: "40px 40px"
-      }}></div>
+    <div className="flex-1 flex flex-col w-full h-full pb-10">
+      
+      {/* ── HEADER SECTION ── */}
+      <section style={{ padding: '32px 40px', borderBottom: `1px solid ${COLORS.borderLight}`, backgroundColor: COLORS.base }}>
+        <div className="flex justify-between items-baseline mb-2">
+          <h1 className="font-syne" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.02em', color: COLORS.textPrimary, margin: 0 }}>
+            Unified Threat Landscape
+          </h1>
+          <div className="flex items-center gap-6">
+            <span className="font-mono" style={{ fontSize: '13px', color: COLORS.textSecondary }}>LAST TELEMETRY PING: {time}</span>
+            <button onClick={fetchDashboardData} className="flex items-center gap-2 cursor-pointer transition-fast" style={{ background: 'none', border: '1px solid transparent', padding: '6px 12px', borderRadius: '4px', outline: 'none', color: COLORS.textPrimary }} onMouseEnter={e => Object.assign(e.currentTarget.style, { backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderActive}` })} onMouseLeave={e => Object.assign(e.currentTarget.style, { backgroundColor: 'transparent', border: '1px solid transparent' })}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" className={loading ? "animate-spin" : ""}>
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.08 5.08" />
+              </svg>
+              <span style={{ fontSize: '13px', fontWeight: 500 }}>Resync</span>
+            </button>
+          </div>
+        </div>
+        <p style={{ fontSize: '15px', fontWeight: 400, color: COLORS.textSecondary, margin: 0, marginTop: '8px' }}>
+          Live monitoring interface for zero-trust proxy events. <span style={{ color: COLORS.medText }}>ELEVATED THREAT VOLUME DETECTED.</span>
+        </p>
+      </section>
 
-      {/* ── Page Header ── */}
-      <header className="relative flex justify-between items-end mb-8 z-10 w-full">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white mb-0" style={{ margin: 0 }}>Admin Center</h2>
-          <p className="text-[#a09bb8] text-sm mt-1 mb-0">Real-time aggregate risk analysis and global threat tracking.</p>
-        </div>
-        <div className="flex gap-4">
-          <div className="text-right">
-            <p className="text-[10px] text-[#635d7a] uppercase tracking-widest font-bold mb-0">Terminal Time</p>
-            <p className="text-lg font-mono font-bold text-[#7c5cfc] mb-0" id="terminal-clock">{formatClock(serverTime)}</p>
-          </div>
-        </div>
-      </header>
-
-      {/* ── KPI Grid ── */}
-      <section className="relative grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 z-10">
-        <div className="p-6 rounded-xl border-l-4 border-l-[#f43f5e]" style={{ background: 'rgba(23, 17, 42, 0.7)', backdropFilter: 'blur(12px)', borderTop: '1px solid #3d2d6b', borderRight: '1px solid #3d2d6b', borderBottom: '1px solid #3d2d6b' }}>
-          <div className="flex justify-between items-start">
-            <p className="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider mb-0">Active Threats</p>
-            <span className="px-2 py-0.5 rounded bg-[#f43f5e1a] text-[#f43f5e] text-[10px] font-mono font-bold">LIVE</span>
-          </div>
-          <h3 className="text-4xl font-mono font-bold mt-2" style={{ color: '#f43f5e', textShadow: '0 0 10px rgba(244, 63, 94, 0.5)' }}>{loadActiveThreats}</h3>
-          <p className="text-xs text-[#635d7a] mt-2 mb-0">Blocked or Locked sessions</p>
-        </div>
-        <div className="p-6 rounded-xl border-l-4 border-l-[#22d3ee]" style={{ background: 'rgba(23, 17, 42, 0.7)', backdropFilter: 'blur(12px)', borderTop: '1px solid #3d2d6b', borderRight: '1px solid #3d2d6b', borderBottom: '1px solid #3d2d6b' }}>
-          <div className="flex justify-between items-start">
-            <p className="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider mb-0">Secure Throughput</p>
-            <span className="px-2 py-0.5 rounded bg-[#22d3ee1a] text-[#22d3ee] text-[10px] font-mono font-bold">STABLE</span>
-          </div>
-          <h3 className="text-4xl font-mono font-bold mt-2" style={{ color: '#22d3ee', textShadow: '0 0 10px rgba(34, 211, 238, 0.5)' }}>{trafficStats.verified}</h3>
-          <p className="text-xs text-[#635d7a] mt-2 mb-0">Verified legitimate requests</p>
-        </div>
-        <div className="p-6 rounded-xl border-l-4 border-l-[#f59e0b]" style={{ background: 'rgba(23, 17, 42, 0.7)', backdropFilter: 'blur(12px)', borderTop: '1px solid #3d2d6b', borderRight: '1px solid #3d2d6b', borderBottom: '1px solid #3d2d6b' }}>
-          <div className="flex justify-between items-start">
-            <p className="text-[11px] text-[#635d7a] font-bold uppercase tracking-wider mb-0">Global Risk Index</p>
-            <div className="flex gap-1" style={{ marginTop: '4px' }}>
-              <div className="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
-              <div className="w-1 h-3 bg-[#f59e0b] rounded-full"></div>
-              <div className="w-1 h-3 bg-[#635d7a] rounded-full"></div>
+      {/* ── STATS SECTION ── */}
+      <section style={{ padding: '32px 40px', borderBottom: `1px solid ${COLORS.borderLight}`, backgroundColor: COLORS.base }}>
+        <SectionHeader title="System Telemetry" />
+        <div className="grid grid-cols-4" style={{ gap: '24px' }}>
+          {[
+            { label: 'CRITICAL EVENTS', value: stats.highRiskEvents, delta: '+3 events', deltaColor: COLORS.highText, color: COLORS.highText },
+            { label: 'ACTIVE SESSIONS', value: stats.activeSessions, delta: 'Stable', deltaColor: COLORS.lowText, color: COLORS.accent },
+            { label: 'POLICY VIOLATIONS', value: activities.filter(a => a.action === 'BLOCKED').length, delta: '+12% avg', deltaColor: COLORS.highText, color: COLORS.medText },
+            { label: 'EVENTS TODAY', value: stats.eventsToday, delta: '+2.4k total', deltaColor: COLORS.textSecondary, color: COLORS.accent }
+          ].map((stat, idx) => (
+            <div key={idx} style={{ 
+              height: '116px', 
+              backgroundColor: COLORS.surface, 
+              padding: '24px', 
+              borderLeft: `2px solid ${stat.color}`,
+              borderRadius: '6px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+            }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: COLORS.textTertiary, fontWeight: 600, letterSpacing: '0.05em' }}>
+                {stat.label}
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="font-mono" style={{ fontSize: '40px', color: COLORS.textPrimary, lineHeight: 1 }}>{stat.value}</span>
+                <span style={{ fontSize: '13px', color: stat.deltaColor, fontWeight: 500 }}>{stat.delta}</span>
+              </div>
             </div>
-          </div>
-          <h3 className="text-4xl font-mono font-bold mt-2" style={{ color: '#f59e0b', textShadow: '0 0 10px rgba(245, 158, 11, 0.5)' }}>{riskIndex}</h3>
-          <p className="text-xs text-[#635d7a] mt-2 mb-0">Aggregate network threat level</p>
+          ))}
         </div>
       </section>
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-4 gap-8 z-10">
-        {/* ── Geographical Threat Map ── */}
-        <section className="lg:col-span-3 space-y-6">
-          <div className="rounded-2xl h-[550px] overflow-hidden flex flex-col border border-[#22d3ee]/40" style={{ background: 'rgba(23, 17, 42, 0.7)' }}>
-            <div className="p-5 border-b border-[#2d2548] flex justify-between items-center bg-[#0a0515] relative z-20">
-              <h4 className="text-xs font-bold uppercase tracking-[2px] text-[#a09bb8] flex items-center gap-3 mb-0">
-                <span className="w-2 h-2 bg-[#22d3ee] rounded-full animate-pulse"></span>
-                ZTA Network Edge Topology
-              </h4>
-              <div className="flex gap-6 text-[10px] font-mono">
-                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-[#10b981] rounded-full"></span> SECURE NODE</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 bg-[#f43f5e] rounded-full"></span> THREAT ORIGIN</div>
-              </div>
-            </div>
-            <div className="flex-1 relative bg-[#05050a] overflow-hidden group">
-              {/* Background Map SVG */}
-              <div className="absolute inset-0 opacity-20 pointer-events-none">
-                <svg className="w-full h-full text-[#7c5cfc]" fill="currentColor" viewBox="0 0 1000 500">
-                  <path d="M150,150 Q180,120 220,150 T300,140 Q350,160 380,200 T450,220 Q500,180 550,200 T650,180 Q700,150 750,170 T850,200 Q900,250 850,350 T750,400 Q650,450 550,420 T400,450 Q300,420 200,400 T150,350 Z" opacity="0.1"></path>
-                  <circle cx="200" cy="180" opacity="0.1" r="40"></circle>
-                  <circle cx="700" cy="220" opacity="0.1" r="60"></circle>
-                  <circle cx="500" cy="350" opacity="0.1" r="30"></circle>
-                  <defs>
-                    <pattern height="20" id="mapGrid" patternUnits="userSpaceOnUse" width="20">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.2"></path>
-                    </pattern>
-                  </defs>
-                  <rect fill="url(#mapGrid)" height="500" width="1000"></rect>
-                </svg>
-              </div>
-              {/* Threat Overlay UI */}
-              <div className="absolute inset-0 z-10">
-                <div className="absolute top-[35%] left-[20%] group/node">
-                  <div className="w-4 h-4 bg-[#10b981] rounded-full shadow-[0_0_15px_#10b981] border-2 border-white/20"></div>
-                  <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#1c1533]/80 border border-[#2d2548] px-2 py-1 rounded text-[9px] text-[#10b981] font-bold">HQ_NODE_ALPHA</div>
-                </div>
-                <div className="absolute top-[30%] left-[52%] group/node">
-                  <div className="w-4 h-4 bg-[#10b981] rounded-full shadow-[0_0_15px_#10b981] border-2 border-white/20"></div>
-                  <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#1c1533]/80 border border-[#2d2548] px-2 py-1 rounded text-[9px] text-[#10b981] font-bold">EURO_EDGE_01</div>
-                </div>
-                {/* Threat Vectors (SVG) */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                  <path className="threat-vector" d="M 800 350 Q 500 100 200 175" fill="none" stroke="rgba(244, 63, 94, 0.4)" strokeWidth="1.5" style={{ animationDuration: '4s' }}></path>
-                  <path className="threat-vector" d="M 650 200 Q 400 50 200 175" fill="none" stroke="rgba(244, 63, 94, 0.4)" strokeWidth="1.5" style={{ animationDuration: '3s' }}></path>
-                  <path className="threat-vector" d="M 300 400 Q 450 300 520 150" fill="none" stroke="rgba(244, 63, 94, 0.4)" strokeWidth="1.5" style={{ animationDuration: '5s' }}></path>
-                  <path d="M 100 300 Q 300 200 520 150" fill="none" stroke="rgba(34, 211, 238, 0.2)" strokeDasharray="4 4" strokeWidth="1"></path>
-                  <path d="M 850 150 Q 700 100 520 150" fill="none" stroke="rgba(34, 211, 238, 0.2)" strokeDasharray="4 4" strokeWidth="1"></path>
-                </svg>
-                {/* Threat Origin Pings */}
-                <div className="map-ping top-[70%] left-[80%]"></div>
-                <div className="map-ping top-[40%] left-[65%]"></div>
-                <div className="map-ping top-[80%] left-[30%]"></div>
-              </div>
-
-              {/* Map Controls */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[80%] z-30">
-                <div className="px-6 py-3 rounded-2xl flex items-center gap-6 bg-[#0a0515]/95 shadow-[0_0_20px_rgba(34,211,238,0.1)] border border-[#22d3ee]/30">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-bold text-[#22d3ee] uppercase tracking-[2px]">Network Topology</span>
-                    <button className="mt-1 flex items-center justify-center text-[#22d3ee] hover:text-white transition-colors bg-transparent border-0 p-0 m-0">
-                      ▶
-                    </button>
-                  </div>
-                  <div className="flex-1 flex flex-col gap-2">
-                    <div className="flex justify-between text-[9px] font-mono text-[#635d7a] uppercase tracking-wider">
-                      <span>Gateway 01</span>
-                      <span>Router 04</span>
-                      <span className="text-[#22d3ee] font-bold">Live Flow</span>
-                    </div>
-                    <div className="relative h-1 w-full bg-[#2d2548] rounded-full group cursor-pointer">
-                      <div className="absolute top-0 left-0 h-full w-[100%] bg-gradient-to-r from-[#7c5cfc] to-[#22d3ee] rounded-full shadow-[0_0_10px_#22d3ee]"></div>
-                      <div className="absolute top-1/2 left-[100%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_15px_#fff] border-4 border-[#22d3ee]"></div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] text-[#a09bb8] font-mono leading-none mb-0">SYNC_STATUS</p>
-                    <p className="text-xs font-mono font-bold text-white mb-0 mt-1">REAL-TIME</p>
-                  </div>
-                </div>
-              </div>
+      {/* ── MAIN CONTENT (TABLE + THREATS) ── */}
+      <section style={{ display: 'flex', gap: '32px', padding: '32px 40px', borderBottom: `1px solid ${COLORS.borderLight}`, backgroundColor: COLORS.base }}>
+        
+        {/* Activity Feed (Fluid) */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <SectionHeader title="Live Activity Stream" />
+          
+          {/* Toolbar */}
+          <div className="flex gap-6 mb-6">
+            <input 
+              type="text" 
+              placeholder="Search user or IP..." 
+              className="transition-fast"
+              style={{ height: '40px', backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderLight}`, borderRadius: '4px', padding: '0 16px', fontSize: '15px', color: COLORS.textPrimary, outline: 'none', width: '280px' }} 
+            />
+            <select 
+              className="transition-fast"
+              style={{ height: '40px', backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderLight}`, borderRadius: '4px', padding: '0 16px', fontSize: '15px', color: COLORS.textPrimary, outline: 'none' }}>
+              <option>Sort: Newest First</option>
+              <option>Sort: Risk Descending</option>
+            </select>
+            <div className="flex items-center gap-4 ml-auto">
+              {['High', 'Medium', 'Low'].map(l => (
+                <button key={l} className="transition-fast" style={{ height: '40px', background: 'none', border: 'none', padding: '0 12px', fontSize: '15px', color: COLORS.textSecondary, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = COLORS.textSecondary}>
+                  {l}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* ── Activity Ticker ── */}
-          <div className="rounded-xl overflow-hidden border border-[#2d2548]" style={{ background: 'rgba(23, 17, 42, 0.7)' }}>
-            <div className="px-6 py-4 border-b border-[#2d2548] bg-[#1c1533]">
-              <h3 className="text-[11px] font-bold text-[#a09bb8] uppercase tracking-widest mb-0">Live Forensics Log</h3>
-            </div>
-            <div className="p-0 max-h-[180px] overflow-y-auto font-mono text-[11px] custom-scrollbar">
-              <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-                <thead className="bg-[#150f28] text-[#635d7a]">
-                  <tr>
-                    <th className="px-6 py-3 font-medium">TIMESTAMP</th>
-                    <th className="px-6 py-3 font-medium">SOURCE</th>
-                    <th className="px-6 py-3 font-medium">ACTION</th>
-                    <th className="px-6 py-3 font-medium">SCORE</th>
-                    <th className="px-6 py-3 font-medium">DETAILS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2d2548] text-[#a09bb8]">
-                  {activities.slice(0, 10).map((act, i) => (
-                    <tr key={i} className={`hover:bg-[#7c5cfc0d] transition-colors ${act.action === 'BLOCKED' ? 'bg-[#f43f5e0a]' : ''}`}>
-                      <td className="px-6 py-3 text-[#635d7a]">{act.timestamp.split('T')[1].substring(0, 8)}</td>
-                      <td className="px-6 py-3 text-[#eae6f5]">{act.location}</td>
-                      <td className="px-6 py-3">
-                        <span className={act.action === 'BLOCKED' ? 'text-[#f43f5e] font-bold' : act.action === 'SANDBOXED' ? 'text-[#f59e0b]' : 'text-[#10b981]'}>
-                          {act.action}
-                        </span>
-                      </td>
-                      <td className={`px-6 py-3 ${act.score > 80 ? 'font-bold text-[#f43f5e]' : act.score > 50 ? 'font-bold text-[#f59e0b]' : ''}`}>{act.score}</td>
-                      <td className="px-6 py-3" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{act.details}</td>
-                    </tr>
+          {/* Table */}
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr>
+                  {['#', 'User', 'Action', 'IP Address', 'Risk Score', 'Level', 'Time'].map(h => (
+                    <th key={h} style={{ padding: '0 16px 16px 16px', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: COLORS.textTertiary, borderBottom: `1px solid ${COLORS.borderLight}` }}>
+                      {h}
+                    </th>
                   ))}
-                  {activities.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-[#635d7a]">Awaiting network traffic...</td>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.map((act, i) => {
+                  const statusInfo = getRiskStatus(act.riskLevel);
+                  return (
+                    <tr key={act.id} 
+                        className="transition-fast"
+                        style={{ height: '52px', borderBottom: `1px solid ${COLORS.borderLight}` }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.textTertiary }}>{(i+1).toString().padStart(2, '0')}</td>
+                      <td style={{ padding: '0 16px', fontSize: '15px', color: COLORS.textPrimary }}>{act.username || act.userId}</td>
+                      <td style={{ padding: '0 16px', fontSize: '15px', color: COLORS.textSecondary }}>{act.action}</td>
+                      <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.mono }}>{act.ipAddress || '10.x.x.x'}</td>
+                      <td style={{ padding: '0 16px' }}>
+                        <div className="flex items-center gap-4">
+                          <span className="font-mono" style={{ fontSize: '15px', color: COLORS.mono, width: '28px' }}>{Math.round(act.riskScore)}</span>
+                          <div style={{ width: '64px', height: '4px', backgroundColor: COLORS.borderLight, borderRadius: '2px' }}>
+                            <div style={{ width: `${Math.min(100, act.riskScore)}%`, height: '100%', backgroundColor: statusInfo.text, opacity: 0.8, borderRadius: '2px' }}></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0 16px' }}>
+                        <div className="flex items-center gap-3">
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: statusInfo.text }}></div>
+                          <span style={{ fontSize: '15px', color: COLORS.textPrimary, textTransform: 'capitalize' }}>{act.riskLevel}</span>
+                        </div>
+                      </td>
+                      <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.mono }}>
+                        {new Date((typeof act.timestamp === 'string' && act.timestamp.includes(' ') && !act.timestamp.includes('Z')) ? act.timestamp.replace(' ', 'T') + 'Z' : act.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        </section>
+        </div>
 
-        {/* ── Explainable AI Sidebar (Static Representation for Admin Center) ── */}
-        <aside className="space-y-6 lg:col-span-1">
-          <div className="p-6 rounded-2xl border-t-2 border-[#7c5cfc]" style={{ background: 'rgba(23, 17, 42, 0.7)', borderLeft: '1px solid #3d2d6b', borderRight: '1px solid #3d2d6b', borderBottom: '1px solid #3d2d6b' }}>
-            <h4 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
-              <svg className="w-4 h-4 text-[#7c5cfc]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
-              Aggregate XAI Metrics
-            </h4>
-            <div className="flex flex-col items-center mb-8">
-              <div className="relative flex flex-col items-center justify-center h-full w-full">
-                <div className="text-5xl font-mono font-bold" style={{ color: '#a855f7', textShadow: '0 0 16px rgba(168,85,247,0.5)' }}>
-                  ZTA
-                </div>
-                <span className="text-[9px] text-[#635d7a] font-bold uppercase tracking-widest mt-2">ENGINE ACTIVE</span>
-              </div>
-              <p className="mt-4 text-xs text-[#a09bb8] text-center px-4 leading-relaxed mb-0">
-                Evaluating traffic heuristically via <span className="text-[#f59e0b] font-bold">Temporal Anomaly</span> and <span className="text-[#22d3ee] font-bold">Geographic Drift</span>.
-              </p>
-            </div>
-            
-            {/* Quick Actions */}
-            <h4 className="text-[10px] font-bold text-[#635d7a] uppercase tracking-widest mb-4">Command Actions</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <button className="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white transition-all m-0 w-full cursor-pointer">Flush DNS</button>
-              <button className="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white transition-all m-0 w-full cursor-pointer">IP Ban List</button>
-              <button className="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs font-semibold text-[#a09bb8] hover:border-[#7c5cfc] hover:text-white transition-all m-0 w-full cursor-pointer">Isolate VLAN</button>
-              <button className="p-3 bg-[#f43f5e1a] border border-[#f43f5e33] rounded-lg text-xs font-semibold text-[#f43f5e] hover:bg-[#f43f5e33] transition-all m-0 w-full cursor-pointer">Halt System</button>
-            </div>
-
-            {/* Active MFA Codes */}
-            <h4 className="text-[10px] font-bold text-[#635d7a] uppercase tracking-widest mb-4 mt-8">Active MFA Verification Codes</h4>
-            <div className="flex flex-col gap-3">
-              {mfaCodes.length === 0 ? (
-                <div className="p-3 bg-[#1c1533] border border-[#2d2548] rounded-lg text-xs text-center text-[#635d7a]">
-                  No active MFA sessions
-                </div>
-              ) : (
-                mfaCodes.map(code => (
-                  <div key={code.id} className="p-3 bg-[#1c1533] border border-[#3d2d6b] rounded-lg flex justify-between items-center group relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#10b981]"></div>
-                    <div className="pl-2">
-                      <div className="text-[10px] font-bold text-white mb-1 uppercase tracking-wider">{code.username || code.user_id}</div>
-                      <div className="text-[9px] text-[#22d3ee] uppercase">{code.action}</div>
-                    </div>
-                    <div className="font-mono text-lg font-bold text-[#10b981] tracking-widest bg-[#0a0515] px-2 py-1 rounded border border-[#10b98144] shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                      {code.otp_code}
-                    </div>
+        {/* Threat Categories (Fixed Sidebar) */}
+        <div style={{ width: '380px', display: 'flex', flexDirection: 'column' }}>
+          <SectionHeader title="Threat Categories" />
+          <div className="flex-1 flex flex-col gap-8 pt-4">
+            {threats.map((t, i) => {
+              // Pick a status color based on rank approx
+              const color = i === 0 ? COLORS.highText : i < 3 ? COLORS.medText : COLORS.lowText;
+              return (
+                <div key={i} className="flex flex-col gap-3">
+                  <div className="flex justify-between items-end">
+                    <span style={{ fontSize: '15px', fontWeight: 500, color: COLORS.textSecondary }}>{t.category}</span>
+                    <span className="font-mono" style={{ fontSize: '14px', color: COLORS.mono }}>{t.count}</span>
                   </div>
-                ))
-              )}
-            </div>
+                  <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                    <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', backgroundColor: color, borderRadius: '2px' }}></div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-        </aside>
-      </div>
+        </div>
+      </section>
+
+      {/* ── CHART SECTION ── */}
+      <section style={{ padding: '32px 40px', backgroundColor: COLORS.base }}>
+        <SectionHeader title="Volume Architecture · 24H" />
+        <div style={{ height: '220px', width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={MOCK_TIMELINE} margin={{ top: 10, right: 0, left: -20, bottom: 0 }} barGap={0} barSize={12}>
+              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="hour" 
+                axisLine={{ stroke: COLORS.borderLight }} 
+                tickLine={false} 
+                tick={{ fontSize: 13, fill: COLORS.textTertiary, fontFamily: 'IBM Plex Mono' }} 
+                dy={16}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 13, fill: COLORS.textTertiary, fontFamily: 'IBM Plex Mono' }} 
+              />
+              <RechartsTooltip 
+                cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                contentStyle={{ backgroundColor: COLORS.elevated, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 0, fontFamily: 'IBM Plex Mono', fontSize: '12px', boxShadow: 'none' }}
+                itemStyle={{ color: COLORS.textPrimary }}
+              />
+              <Bar dataKey="low" stackId="a" fill={COLORS.lowText} isAnimationActive={false} />
+              <Bar dataKey="medium" stackId="a" fill={COLORS.medText} isAnimationActive={false} />
+              <Bar dataKey="high" stackId="a" fill={COLORS.highText} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
     </div>
-  )
+  );
 }

@@ -227,7 +227,9 @@ export default function Treasury() {
                     <td className="text-right amount">{formatINR(tx.amount)}</td>
                     <td style={{maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tx.description}</td>
                     <td>{statusBadge(tx.status)}</td>
-                    <td style={{fontSize:'13px', color:'var(--text-muted)', whiteSpace:'nowrap'}}>{tx.created_at}</td>
+                    <td style={{fontSize:'13px', color:'var(--text-muted)', whiteSpace:'nowrap'}}>
+                      {tx.created_at ? new Date((typeof tx.created_at === 'string' && tx.created_at.includes(' ') && !tx.created_at.includes('Z')) ? tx.created_at.replace(' ', 'T') + 'Z' : tx.created_at).toLocaleString() : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

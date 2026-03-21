@@ -129,10 +129,12 @@ export default function CoreBanking() {
                   <tr key={tx.id}>
                     <td style={{fontFamily:'monospace', fontSize:'13px'}}>{tx.id}</td>
                     <td><span className={`badge ${tx.type === 'deposit' ? 'success' : 'info'}`}>{tx.type}</span></td>
-                    <td className="text-right amount">{formatINR(tx.amount)}</td>
-                    <td>{tx.description}</td>
+                    <td className="text-right amount">{tx.type === 'deposit' ? '+' : '-'}{formatINR(tx.amount)}</td>
+                    <td style={{maxWidth:'250px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{tx.description}</td>
                     <td><span className={`badge ${tx.status === 'completed' ? 'success' : 'warning'}`}>{tx.status}</span></td>
-                    <td style={{fontSize:'12px', color:'var(--text-muted)'}}>{tx.created_at}</td>
+                    <td style={{fontSize:'13px', color:'var(--text-muted)', whiteSpace:'nowrap'}}>
+                      {tx.created_at ? new Date((typeof tx.created_at === 'string' && tx.created_at.includes(' ') && !tx.created_at.includes('Z')) ? tx.created_at.replace(' ', 'T') + 'Z' : tx.created_at).toLocaleString() : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
