@@ -30,6 +30,10 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           } else if (result.status === 'failed') {
             setStatus('failed')
             if (popupRef.current) popupRef.current.close()
+          } else if (result.status === 'denied') {
+            setStatus('denied')
+            setAdminResponse(result.message || 'Action permanently blocked by Zero Trust Architecture due to risk profile.')
+            if (popupRef.current) popupRef.current.close()
           }
         } else if ((mode === 'admin' || mode === 'mfa_escalated') && data?.request_id) {
           const res = await fetch(`${SECURITY_PLATFORM_URL}/api/approvals/check/${data.request_id}`)

@@ -22,6 +22,10 @@ export default function Treasury() {
   const [freezeOverlay, setFreezeOverlay] = useState(null)  // { mode, data }
   const [justifyModal, setJustifyModal] = useState(null)     // { data, pendingAction }
   const [pendingAction, setPendingAction] = useState(null)   // { type, body }
+  const [deniedModal, setDeniedModal] = useState(null)
+  const [structuringDelay, setStructuringDelay] = useState(0) // 30s counter
+  const [blockScreen, setBlockScreen] = useState(false)
+  const [structPendingSuccess, setStructPendingSuccess] = useState(null)
 
   const load = () => {
     apiFetch('/api/treasury/stats').then(setStats).catch(console.error)
@@ -73,12 +77,30 @@ export default function Treasury() {
     const body = { from_account_id: formData.from_account_id, to_account_id: formData.to_account_id, amount: Number(formData.amount), description: formData.description }
     try {
       const res = await apiFetch('/api/treasury/transfer', { method: 'POST', body: JSON.stringify(body) })
+      
+      if (res.structuringFlag) {
+        if (res.matchCount >= 3) {
+          setShowTransfer(false)
+          setBlockScreen(true)
+          return
+        } else if (res.matchCount === 2) {
+          setShowTransfer(false)
+          setStructuringDelay(30)
+          setStructPendingSuccess(res.message || 'Transfer completed successfully')
+          return
+        } else if (res.matchCount === 1) {
+          showToast("Repeated transaction detected. If this wasn't intentional, please contact support.", 'warning')
+        }
+      }
+
       if (res.justify_required || res.mfa_required || res.step_up_required || res.admin_approval_required) {
         handleSecurityResponse(res, 'transfer', body)
         setShowTransfer(false)
         return
       }
-      showToast(res.message)
+      if (res.matchCount !== 1) {
+        showToast(res.message)
+      }
       setShowTransfer(false); setFormData({}); load()
     } catch (err) {
       setShowTransfer(false)
@@ -142,8 +164,40 @@ export default function Treasury() {
   }
 
   const statusBadge = (s) => {
-    const map = { completed: 'success', pending: 'warning', blocked: 'danger' }
+    const map = { completed: 'success', pending: 'warning', blocked: 'danger', flagged: 'warning', rejected: 'danger' }
     return <span className={`badge ${map[s] || 'neutral'}`}>{s}</span>
+  }
+
+  // Structuring delay timer effect
+  useEffect(() => {
+    let interval = null;
+    if (structuringDelay > 0) {
+      interval = setInterval(() => {
+        setStructuringDelay((d) => {
+          if (d <= 1) {
+            clearInterval(interval);
+            showToast(structPendingSuccess);
+            setFormData({}); load();
+            return 0;
+          }
+          return d - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [structuringDelay, structPendingSuccess]);
+
+  if (blockScreen) {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(20, 0, 0, 0.95)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+        <ShieldAlert size={64} color="var(--danger)" style={{ marginBottom: '24px' }} />
+        <h1 style={{ color: '#fff', fontSize: '32px', marginBottom: '16px' }}>Account Temporarily Suspended</h1>
+        <p style={{ color: '#ccc', fontSize: '18px', maxWidth: '600px', textAlign: 'center', marginBottom: '40px' }}>
+          Suspicious repetitive transaction activity has been detected. Your account is under review. Reference: TXN-{Date.now()}. Contact support to appeal.
+        </p>
+        <button className="btn btn-primary" style={{ padding: '12px 32px', fontSize: '18px' }} onClick={() => window.location.reload()}>Contact Support</button>
+      </div>
+    )
   }
 
   return (
@@ -249,6 +303,15 @@ export default function Treasury() {
         </div>
       </Modal>
 
+      {/* 30s Structuring Delay Modal */}
+      <Modal show={structuringDelay > 0} onClose={() => setStructuringDelay(0)} title="Security Review Pending" icon={<Clock size={20} color="var(--warning)" />}
+        footer={<button className="btn btn-outline" onClick={() => { setStructuringDelay(0); showToast('Transfer cancelled locally.'); }}>Cancel Transaction</button>}>
+        <div style={{ textAlign: 'center', padding: '24px' }}>
+          <h2 style={{ fontSize: '48px', margin: '0 0 16px 0', fontFamily: 'monospace', color: 'var(--warning)' }}>00:{structuringDelay.toString().padStart(2, '0')}</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>This is your 3rd repeated transaction pattern within 24 hours. It will be processed after a 30-second security review.</p>
+        </div>
+      </Modal>
+
       {/* Legacy Security Block Modal (fallback) */}
       <Modal show={!!blockModal} onClose={() => setBlockModal(null)}
         title="Transaction Blocked" icon={<ShieldAlert size={20}/>}
@@ -287,10 +350,20 @@ export default function Treasury() {
           onDenied={() => {
             setFreezeOverlay(null)
             setPendingAction(null)
-            showToast('Action was denied by admin', 'error')
+            setDeniedModal('This action has been permanently blocked by the security administrator.')
           }}
         />
       )}
+
+      <Modal show={!!deniedModal} onClose={() => setDeniedModal(null)} title="Action Denied" icon={<ShieldAlert size={20} color="var(--danger)" />} footer={<button className="btn btn-outline" onClick={() => setDeniedModal(null)}>Close</button>}>
+        <div className="alert-block danger">
+          <span className="alert-icon"><ShieldAlert size={18}/></span>
+          <div className="alert-text">
+            <div className="alert-title">Admin Denial</div>
+            <div>{deniedModal}</div>
+          </div>
+        </div>
+      </Modal>
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>

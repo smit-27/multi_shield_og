@@ -8,12 +8,18 @@
  */
 const { queryOne } = require('../db');
 
-function makeDecision(riskScore, factors = []) {
+function makeDecision(riskScore, factors = [], options = {}) {
+  const { blockFlag, structuringFlag, matchCount } = options;
+
+  if (blockFlag) {
+    return { decision: 'DENY', reason: 'Account Temporarily Suspended: Suspicious repetitive transaction activity has been detected.' };
+  }
+
   const justifyThreshold = queryOne("SELECT threshold FROM policies WHERE rule_type = 'justify_threshold' AND enabled = 1")?.threshold || 40;
   const mfaThreshold = queryOne("SELECT threshold FROM policies WHERE rule_type = 'mfa_threshold' AND enabled = 1")?.threshold || 60;
   const adminThreshold = queryOne("SELECT threshold FROM policies WHERE rule_type = 'admin_threshold' AND enabled = 1")?.threshold || 90;
 
-  let decision, reason;
+  let decision = 'ALLOW', reason = 'Risk score is within acceptable limits';
 
   if (riskScore >= adminThreshold) {
     decision = 'ADMIN_APPROVAL';
@@ -27,9 +33,16 @@ function makeDecision(riskScore, factors = []) {
   } else if (riskScore >= justifyThreshold) {
     decision = 'JUSTIFY';
     reason = `Risk score ${riskScore} requires justification before proceeding`;
-  } else {
-    decision = 'ALLOW';
-    reason = `Risk score ${riskScore} is within acceptable limits`;
+  }
+
+  if (structuringFlag) {
+    if (matchCount === 2) {
+      decision = 'ALLOW';
+      reason = 'ALLOW with 30s delay, tagged correctly inline.';
+    } else if (matchCount === 1) {
+      decision = 'ALLOW';
+      reason = 'ALLOW, sent upstream notification banner.';
+    }
   }
 
   return { decision, reason };

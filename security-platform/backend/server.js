@@ -80,9 +80,10 @@ async function start() {
     });
   });
 
-  server.listen(PORT, '127.0.0.1', () => {
-    console.log(`🛡️  Security Platform (ZTA Gateway) running on http://127.0.0.1:${PORT}`);
-    console.log(`   ZTA Auth:    POST http://127.0.0.1:${PORT}/api/zta/login`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🛡️  ZTA Gateway running on http://127.0.0.1:${PORT}`);
+    console.log(`📡 Dashboard metrics enabled`);
+    console.log(`🔗 Blockchain anchoring initialized`);
     console.log(`   Banking:     /api/banking/* → http://127.0.0.1:3001/api/*`);
     console.log(`   MFA:         /api/mfa/*`);
     console.log(`   Analyze:     POST /api/analyze`);

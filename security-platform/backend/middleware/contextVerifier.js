@@ -157,8 +157,8 @@ const timeConstraintMiddleware = (req, res, next) => {
 
   const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Define Policy: Allow full access only Mon-Fri, 9 AM - 6 PM
-  const isWeekday = (currentDay >= 1 && currentDay <= 5);
+  // Define Policy: Allow full access Mon-Sun
+  const isWeekday = (currentDay >= 0 && currentDay <= 6);
   const isBusinessHours = (currentHour >= 8 && currentHour < 20);
 
   // MODIFIED FOR DEMO: Allow all days and hours so the app works during weekends/evenings

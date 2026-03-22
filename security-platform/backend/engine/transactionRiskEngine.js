@@ -13,6 +13,40 @@
  */
 const { queryAll, queryOne } = require('../db');
 
+/**
+ * Detect Structuring / Repetitive Transaction Fraud patterns
+ * (Soft / Hard / Block Escalation parameters handled downstream)
+ */
+async function detectStructuringPattern(userId, amount, destinationAccount) {
+  // Query last 24 hours of transactions from ZTA telemetry database
+  const priorTxns = queryAll("SELECT * FROM transactions WHERE userId = ? AND timestamp > datetime('now', '-24 hours')", [userId]);
+  
+  let matchCount = 0;
+  let patternType = null;
+  const matchedTransactions = [];
+
+  for (const priorTxn of priorTxns) {
+    const isCloseAmount = Math.abs(priorTxn.amount - amount) / amount <= 0.02;
+    const destMatches = !destinationAccount || priorTxn.destinationAccount === destinationAccount;
+
+    if (isCloseAmount && destMatches) {
+      matchCount++;
+      matchedTransactions.push(priorTxn);
+    }
+  }
+
+  if (matchCount > 0) {
+    if (destinationAccount) {
+      let mixedTypes = matchedTransactions.some(t => t.type !== 'transfer');
+      patternType = mixedTypes ? 'same_amount_and_destination' : 'same_destination';
+    } else {
+      patternType = 'same_amount';
+    }
+  }
+
+  return { matchCount, patternType, matchedTransactions };
+}
+
 function getPolicies() {
   const rows = queryAll('SELECT * FROM policies WHERE enabled = 1');
   const map = {};
@@ -54,7 +88,7 @@ function analyzeTransactionRisk(activity, overrides = {}) {
 
   // Factor 2: Time-of-day anomaly (0-20)
   const hour = activity.hour != null ? activity.hour : new Date().getHours();
-  const hoursStart = policies.hours_start || 8;
+  const hoursStart = policies.hours_start || 7;
   const hoursEnd = policies.hours_end || 20;
 
   if (hour < hoursStart || hour >= hoursEnd) {
@@ -126,4 +160,4 @@ function analyzeTransactionRisk(activity, overrides = {}) {
   return { score: Math.min(100, totalScore), factors };
 }
 
-module.exports = { analyzeTransactionRisk };
+module.exports = { analyzeTransactionRisk, detectStructuringPattern };

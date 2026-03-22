@@ -55,7 +55,8 @@ router.get('/:challengeId', (req, res) => {
     step: challenge.step,
     attempts: challenge.attempts,
     created_at: challenge.created_at,
-    completed_at: challenge.completed_at
+    completed_at: challenge.completed_at,
+    message: challenge.status === 'denied' ? 'ZTA Direct Block: Risk score exceeds acceptable threshold despite successful MFA.' : undefined
   });
 });
 
@@ -118,6 +119,13 @@ router.post('/:challengeId/verify', (req, res) => {
     const nextStep = currentStep + 1;
     
     if (nextStep >= 4) {
+      if (challenge.risk_score >= 85) {
+        runSql("UPDATE mfa_challenges SET status='denied', step=?, completed_at=datetime('now') WHERE id=?", [nextStep, challenge.id]);
+        runSql("INSERT INTO audit_log (event_type, details, performed_by) VALUES ('zta_direct_block', ?, 'system')",
+          [JSON.stringify({ challenge_id: challenge.id, user_id: challenge.user_id, risk_score: challenge.risk_score })]);
+        return res.status(403).json({ success: false, status: 'denied', message: 'ZTA Direct Block: Risk score exceeds threshold despite successful MFA.' });
+      }
+
       // All steps passed — mark completed
       runSql("UPDATE mfa_challenges SET status='completed', step=?, completed_at=datetime('now') WHERE id=?",
         [nextStep, challenge.id]);

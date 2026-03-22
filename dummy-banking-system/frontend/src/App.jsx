@@ -33,8 +33,7 @@ function remapPath(path) {
   if (path === '/api/auth/login') return '/api/zta/login'
   if (path === '/api/auth/me') return '/api/zta/session'
   if (path === '/api/auth/logout') return '/api/zta/logout'
-  if (path.startsWith('/api/zta/')) return path
-  if (path.startsWith('/api/')) return '/api/banking' + path.slice(4)
+  if (path.startsWith('/api/')) return `/api/banking${path.substring(4)}`
   return path
 }
 
@@ -218,7 +217,7 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
-      apiFetch('/api/zta/session')
+      apiFetch('/api/auth/me')
         .then(d => setUser(d.user))
         .catch(() => { localStorage.removeItem('token'); setUser(null) })
         .finally(() => setLoading(false))
@@ -228,18 +227,18 @@ export default function App() {
   }, [])
 
   const login = async (username, password) => {
-    const data = await apiFetch('/api/zta/login', {
+    const data = await apiFetch('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     })
     // ZTA gateway returns access_token; banking backend returns token
-    localStorage.setItem('token', data.access_token || data.token)
+    localStorage.setItem('token', data.token || data.access_token)
     setUser(data.user)
     return data
   }
 
   const logout = () => {
-    apiFetch('/api/zta/logout', { method: 'POST' }).catch(() => {})
+    apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('token')
     setUser(null)
   }

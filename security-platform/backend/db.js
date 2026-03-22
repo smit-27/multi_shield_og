@@ -46,6 +46,22 @@ async function initDb() {
     created_at TEXT DEFAULT (datetime('now'))
   )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId TEXT NOT NULL,
+    type TEXT NOT NULL,
+    amount REAL NOT NULL,
+    destinationAccount TEXT,
+    timestamp TEXT DEFAULT (datetime('now')),
+    status TEXT NOT NULL,
+    mlScore REAL,
+    structuringDelta REAL,
+    finalRiskScore REAL,
+    structuringFlag INTEGER DEFAULT 0,
+    matchCount INTEGER DEFAULT 0,
+    patternType TEXT
+  )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
     details TEXT, performed_by TEXT,

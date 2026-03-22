@@ -7,7 +7,7 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const { queryOne } = require('../db');
-
+                                                                                                                                                                                                                                                                                                                                                                          
 // Keycloak configuration
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
 const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'multishield';
@@ -47,7 +47,8 @@ function verifyToken(token) {
     // Try Keycloak JWKS verification first
     if (jwks && !DEV_MODE) {
       jwt.verify(token, getKeycloakKey, {
-        algorithms: ['RS256']
+        algorithms: ['RS256'],
+        clockTolerance: 864000 // 10 days tolerance for Docker time drift
         // We'll be lenient with audience/issuer for the prototype to avoid configuration mismatches
       }, (err, decoded) => {
         if (!err) return resolve(decoded);
@@ -68,7 +69,7 @@ function verifyToken(token) {
 function verifyLocal(token) {
   return new Promise((resolve, reject) => {
     // In local dev, we don't strictly require audience match because local tokens might not have it
-    jwt.verify(token, JWT_SECRET, { algorithms: ['HS256', 'RS256'] }, (err, decoded) => {
+    jwt.verify(token, JWT_SECRET, { algorithms: ['HS256', 'RS256'], clockTolerance: 864000 }, (err, decoded) => {
       if (err) return reject(err);
       resolve(decoded);
     });

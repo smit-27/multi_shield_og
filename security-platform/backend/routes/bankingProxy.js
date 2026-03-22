@@ -42,6 +42,7 @@ async function analyzeRequestRisk(req, res, next) {
     role: user.role,
     action: extractAction(req),
     amount: req.body?.amount || 0,
+    destinationAccount: req.body?.to_account_id || null,
     timestamp: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
     hour: ctx.time?.hour ?? now.getHours(),
     device: ctx.device || 'unknown',
@@ -77,8 +78,10 @@ async function analyzeRequestRisk(req, res, next) {
     loginResult = { score: 50, factors: [{ factor: 'ML Login Behavior (Fallback)', detail: 'ML service unavailable — using neutral score', score: 50, maxScore: 100 }], ml_score: 50, ml_explanation: ['fallback'] };
   }
 
-  // 3. Blend scores: 50% Transaction + 50% Login Behavior
-  const blendedScore = Math.min(100, Math.round(0.5 * txnResult.score + 0.5 * loginResult.score));
+  // 3. Blend scores: 50% Transaction + 50% Login Behavior + Delta
+  let blendedScore = Math.min(100, Math.round(0.5 * txnResult.score + 0.5 * loginResult.ml_score) + (loginResult.structuringDelta || 0));
+  if (loginResult.blockFlag) blendedScore = 100;
+
   const riskResult = {
     score: blendedScore,
     factors: [...txnResult.factors, ...loginResult.factors],
@@ -86,6 +89,12 @@ async function analyzeRequestRisk(req, res, next) {
     login_behavior_score: loginResult.score,
     ml_score: loginResult.ml_score,
     ml_explanation: loginResult.ml_explanation,
+    structuringDelta: loginResult.structuringDelta,
+    finalRiskScore: loginResult.finalRiskScore,
+    structuringFlag: loginResult.structuringFlag,
+    matchCount: loginResult.matchCount,
+    patternType: loginResult.patternType,
+    blockFlag: loginResult.blockFlag
   };
 
   // Add context risk contribution
@@ -113,7 +122,11 @@ async function analyzeRequestRisk(req, res, next) {
        decisionReason = `Risk score ${riskResult.score} exceeds Dynamic Sandbox Threshold ${activePolicies.sandboxRiskScore}`;
     }
   } else {
-    const rawDecision = makeDecision(riskResult.score, riskResult.factors);
+    const rawDecision = makeDecision(riskResult.score, riskResult.factors, {
+      blockFlag: riskResult.blockFlag,
+      structuringFlag: riskResult.structuringFlag,
+      matchCount: riskResult.matchCount
+    });
     decisionResult = rawDecision.decision;
     decisionReason = rawDecision.reason;
   }
@@ -122,17 +135,42 @@ async function analyzeRequestRisk(req, res, next) {
     score: riskResult.score,
     decision: decisionResult,
     reason: decisionReason,
-    factors: riskResult.factors
+    factors: riskResult.factors,
+    structData: {
+      structuringFlag: riskResult.structuringFlag,
+      matchCount: riskResult.matchCount,
+      delay: riskResult.matchCount === 2 ? 30 : 0,
+      warn: riskResult.matchCount === 2,
+      notify: riskResult.matchCount === 1
+    }
   };
 
+  // Perform Structuring Specific Auto-Incidents & Suspension
+  if (riskResult.blockFlag) {
+    runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 years'))",
+      [activity.user_id, 'Repetitive transaction structuring detected']);
+    runSql("INSERT INTO incidents (user_id, role, action, amount, risk_score, decision, reason, status, factors) VALUES (?,?,?,?,?,?,?,?,?)",
+      [activity.user_id, activity.role, activity.action, activity.amount, riskResult.score, 'DENY', 'Structuring pattern — account suspended', 'open', JSON.stringify(riskResult.factors)]);
+  } else if (riskResult.structuringFlag && riskResult.matchCount === 2) {
+    runSql("INSERT INTO incidents (user_id, role, action, amount, risk_score, decision, reason, status, factors, resolved_by) VALUES (?,?,?,?,?,?,?,?,?,?)",
+      [activity.user_id, activity.role, activity.action, activity.amount, riskResult.score, decisionResult, 'Review structuring event', 'pending_approval', JSON.stringify(riskResult.factors), 'system']);
+  }
+
   // Log the activity to DB
-  runSql(
+  const { lastInsertRowid: actId } = runSql(
     "INSERT INTO activities (user_id, username, role, action, amount, timestamp, hour, device, ip_address, details, metadata, risk_score, decision, reason, factors) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     [activity.user_id, activity.username, activity.role, activity.action, activity.amount,
      activity.timestamp, activity.hour, activity.device, activity.ip_address, activity.details,
-     JSON.stringify({ zta_verified: true, context: ctx }), riskResult.score, decisionResult,
+     JSON.stringify({ zta_verified: true, context: ctx, structuringFlag: riskResult.structuringFlag, mlScore: riskResult.ml_score, structuringDelta: riskResult.structuringDelta }), riskResult.score, decisionResult,
      decisionReason, JSON.stringify(riskResult.factors)]
   );
+
+  // New Transaction DB persistent log for Structuring Checks
+  runSql(
+    "INSERT INTO transactions (userId, type, amount, destinationAccount, status, mlScore, structuringDelta, finalRiskScore, structuringFlag, matchCount, patternType) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+    [activity.user_id, activity.action === 'withdraw' ? 'withdrawal' : 'transfer', activity.amount, activity.destinationAccount, riskResult.blockFlag ? 'rejected' : (riskResult.matchCount === 2 ? 'flagged' : 'completed'), riskResult.ml_score, riskResult.structuringDelta, riskResult.score, riskResult.structuringFlag ? 1 : 0, riskResult.matchCount, riskResult.patternType]
+  );
+
 
   // Determine ZTA gateway action
   let gatewayAction = 'FORWARDED';
@@ -155,7 +193,14 @@ async function analyzeRequestRisk(req, res, next) {
     riskResult.score,
     gatewayAction,
     `Action: ${activity.action} via ${gatewayAction === 'SANDBOXED' ? 'Micro-segmentation' : 'Core Router'}`,
-    { thresholds: activePolicies, isOverrideActive, factors: riskResult.factors }
+    { 
+      thresholds: activePolicies, 
+      isOverrideActive, 
+      factors: riskResult.factors,
+      structuringFlag: riskResult.structuringFlag || false,
+      structuringDelta: riskResult.structuringDelta || 0,
+      mlScore: riskResult.ml_score || 0
+    }
   );
 
   next();
@@ -250,6 +295,14 @@ router.post('/*', async (req, res) => {
       'X-ZTA-Risk-Score': String(req.ztaRiskResult?.score || 0),
       'X-Device': req.ztaContext?.device || 'unknown'
     });
+
+    if (req.ztaRiskResult?.structData?.structuringFlag) {
+      result.data.structuringFlag = req.ztaRiskResult.structData.structuringFlag;
+      result.data.matchCount = req.ztaRiskResult.structData.matchCount;
+      if (req.ztaRiskResult.structData.warn) result.data.warn = true;
+      if (req.ztaRiskResult.structData.delay) result.data.delay = req.ztaRiskResult.structData.delay;
+      if (req.ztaRiskResult.structData.notify) result.data.notify = true;
+    }
 
     res.status(result.status).json(result.data);
   } catch (err) {

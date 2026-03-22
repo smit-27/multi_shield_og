@@ -11,6 +11,7 @@
  * - Financial Transactions → Hardcoded rules (transactionRiskEngine.js)
  */
 const { getMLRiskScore } = require('./mlClient');
+const { detectStructuringPattern } = require('./transactionRiskEngine');
 
 /**
  * Derive ML behavioral features from activity/login context.
@@ -47,23 +48,70 @@ function deriveMLFeatures(activity) {
  */
 async function analyzeLoginBehaviorRisk(activity) {
   const mlFeatures = deriveMLFeatures(activity);
-  const mlResult = await getMLRiskScore(mlFeatures);
+  
+  let mlResult;
+  try {
+    mlResult = await getMLRiskScore(mlFeatures);
+  } catch(err) {
+    mlResult = { risk_score: 50, explanation: ['fallback - ML unavailable'] };
+  }
+  const mlScore = mlResult.risk_score;
+
+  let structuringFlag = false;
+  let structuringDelta = 0;
+  let blockFlag = false;
+  let finalRiskScore = mlScore;
+  let matchCount = 0;
+  let patternType = null;
+
+  try {
+    if (activity.amount > 0) {
+      // destinationAccount could be passed explicitly from bankingProxy or parsed from details.
+      const structResult = await detectStructuringPattern(activity.user_id, activity.amount, activity.destinationAccount);
+      matchCount = structResult.matchCount;
+      patternType = structResult.patternType;
+
+      if (matchCount === 1) { structuringDelta = 25; structuringFlag = true; }
+      else if (matchCount === 2) { structuringDelta = 40; structuringFlag = true; }
+      else if (matchCount >= 3) { structuringDelta = 100 - mlScore; structuringFlag = true; blockFlag = true; }
+
+      finalRiskScore = Math.min(100, Math.max(0, mlScore + structuringDelta));
+      if (blockFlag) finalRiskScore = 100;
+    }
+  } catch (err) {
+    console.error('[ZTA] Structuring detection failed:', err);
+  }
 
   const mlExplanationText = mlResult.explanation.join(', ');
   const factors = [
     {
       factor: 'ML Login Behavior Analysis',
-      detail: `ML model scored ${mlResult.risk_score}/100 — key factors: ${mlExplanationText}`,
-      score: mlResult.risk_score,
+      detail: `ML model scored ${mlScore}/100 — key factors: ${mlExplanationText}`,
+      score: mlScore,
       maxScore: 100,
     },
   ];
 
+  if (structuringFlag) {
+    factors.push({
+      factor: 'Structuring / Repetitive Pattern Detected',
+      detail: `${matchCount} identical transaction(s) found in trailing 24h. Delta applied: +${structuringDelta}.`,
+      score: structuringDelta,
+      maxScore: 100
+    });
+  }
+
   return {
-    score: mlResult.risk_score,
+    score: finalRiskScore,
     factors,
-    ml_score: mlResult.risk_score,
+    ml_score: mlScore,
     ml_explanation: mlResult.explanation,
+    structuringDelta,
+    finalRiskScore,
+    structuringFlag,
+    matchCount,
+    patternType,
+    blockFlag
   };
 }
 

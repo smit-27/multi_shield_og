@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { apiFetch } from '../App'
+import { io } from 'socket.io-client'
 
 const COLORS = {
   base: '#0A0C0F',
@@ -44,7 +45,20 @@ export default function Incidents() {
   useEffect(() => {
     loadIncidents()
     const timer = setInterval(loadIncidents, 5000)
-    return () => clearInterval(timer)
+    
+    // Real-time log/event hooking via live architecture
+    const socket = io('http://127.0.0.1:3002')
+    socket.on('zta-activity', (data) => {
+      // Re-poll the backend aggressively on live blocks/suspicious metrics
+      if (data.action === 'BLOCKED' || data.action === 'SANDBOXED' || data.score >= 40) {
+        loadIncidents()
+      }
+    })
+
+    return () => {
+      clearInterval(timer)
+      socket.disconnect()
+    }
   }, [])
 
   const allData = useMemo(() => [...approvals, ...incidents], [approvals, incidents])

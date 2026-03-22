@@ -225,14 +225,18 @@ export default function AdminDashboard() {
                   return (
                     <tr key={act.id} 
                         className="transition-fast"
+                        title={act.structuringFlag ? `ML Score: ${Math.round(act.mlScore)} · Structuring Delta: +${act.structuringDelta} · Final: ${Math.round(act.score)}` : ''}
                         style={{ height: '52px', borderBottom: `1px solid ${COLORS.borderLight}` }}
                         onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)'}
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.textTertiary }}>{(i+1).toString().padStart(2, '0')}</td>
-                      <td style={{ padding: '0 16px', fontSize: '15px', color: COLORS.textPrimary }}>{act.username || act.userId}</td>
-                      <td style={{ padding: '0 16px', fontSize: '15px', color: COLORS.textSecondary }}>{act.action}</td>
-                      <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.mono }}>{act.ipAddress || '10.x.x.x'}</td>
+                      <td style={{ padding: '0 16px', fontSize: '15px', color: COLORS.textPrimary }}>{act.username || act.user}</td>
+                      <td style={{ padding: '0 16px', fontSize: '15px', color: COLORS.textSecondary }}>
+                        {act.action}
+                        {act.structuringFlag && <span className="font-mono" style={{ marginLeft: '8px', fontSize: '11px', color: COLORS.highText, backgroundColor: COLORS.highBg, padding: '2px 4px', borderRadius: '4px' }}>[STRUCTURING]</span>}
+                      </td>
+                      <td className="font-mono" style={{ padding: '0 16px', fontSize: '14px', color: COLORS.mono }}>{act.location || '10.x.x.x'}</td>
                       <td style={{ padding: '0 16px' }}>
                         <div className="flex items-center gap-4">
                           <span className="font-mono" style={{ fontSize: '15px', color: COLORS.mono, width: '28px' }}>{Math.round(act.riskScore)}</span>
@@ -284,6 +288,28 @@ export default function AdminDashboard() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+
+          {/* Active Users */}
+          <div className="flex flex-col">
+            <SectionHeader title="Active User Sessions" />
+            <div className="flex flex-col gap-3 pt-4">
+              {(() => {
+                const uniqueUsers = Array.from(new Set(activities.map(a => a.username || a.userId))).slice(0, 5);
+                if (uniqueUsers.length === 0) return <div style={{ color: COLORS.textSecondary, fontSize: '13px' }}>NO ACTIVE USERS</div>;
+                return uniqueUsers.map(user => {
+                  const lastAct = activities.find(a => (a.username || a.userId) === user);
+                  return (
+                    <div key={user} className="flex justify-between items-center" style={{ padding: '12px 16px', backgroundColor: COLORS.surface, border: `1px solid ${COLORS.borderLight}`, borderRadius: '4px', borderLeft: `2px solid ${COLORS.lowText}` }}>
+                      <div className="flex items-center gap-3">
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: COLORS.textPrimary }}>{user}</span>
+                      </div>
+                      <span className="font-mono" style={{ fontSize: '12px', color: COLORS.accent }}>{lastAct?.action.substring(0, 15)}</span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 

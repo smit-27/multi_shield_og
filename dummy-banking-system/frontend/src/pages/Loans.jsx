@@ -19,6 +19,7 @@ export default function Loans() {
   const [freezeOverlay, setFreezeOverlay] = useState(null)
   const [justifyModal, setJustifyModal] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
+  const [deniedModal, setDeniedModal] = useState(null)
 
   const load = () => {
     const q = filter ? `?status=${filter}` : ''
@@ -211,9 +212,19 @@ export default function Loans() {
           mode={freezeOverlay.mode}
           data={freezeOverlay.data}
           onResolved={() => { setTimeout(() => retryPendingAction(), 1500) }}
-          onDenied={() => { setFreezeOverlay(null); setPendingAction(null); showToast('Action was denied by admin', 'error') }}
+          onDenied={() => { setFreezeOverlay(null); setPendingAction(null); setDeniedModal('This action has been permanently blocked by the security administrator.') }}
         />
       )}
+
+      <Modal show={!!deniedModal} onClose={() => setDeniedModal(null)} title="Action Denied" icon={<ShieldAlert size={20} color="var(--danger)" />} footer={<button className="btn btn-outline" onClick={() => setDeniedModal(null)}>Close</button>}>
+        <div className="alert-block danger">
+          <span className="alert-icon"><ShieldAlert size={18}/></span>
+          <div className="alert-text">
+            <div className="alert-title">Admin Denial</div>
+            <div>{deniedModal}</div>
+          </div>
+        </div>
+      </Modal>
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>

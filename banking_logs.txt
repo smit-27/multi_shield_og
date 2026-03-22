@@ -1,2 +1,0 @@
-✅ Database seeded with demo data
-🏦 Dummy Banking System API running on http://localhost:3001

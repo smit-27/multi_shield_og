@@ -18,6 +18,10 @@ export default function Withdrawals() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [deniedModal, setDeniedModal] = useState(null)
+  const [structuringDelay, setStructuringDelay] = useState(0) // 30s counter
+  const [blockScreen, setBlockScreen] = useState(false)
+  const [structPendingSuccess, setStructPendingSuccess] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -25,12 +29,13 @@ export default function Withdrawals() {
 
   const loadData = async () => {
     try {
-      const [accs, wds] = await Promise.all([
-        apiFetch('/api/accounts'),
-        apiFetch('/api/withdrawals') // Assuming this endpoint exists, or we mock it
+      const [balData, txData] = await Promise.all([
+        apiFetch('/api/treasury/balances'),
+        apiFetch('/api/treasury/transactions?limit=15&type=withdrawal')
       ])
-      setAccounts(accs)
-      setWithdrawals(wds && wds.length ? wds : [
+      setAccounts(balData.accounts || [])
+      const wds = (txData.transactions || []).filter(t => t.type === 'withdrawal')
+      setWithdrawals(wds.length ? wds : [
         { id: 1042, account_name: 'Corporate Salary Acc', amount: 450000, description: 'Payroll Jan 2026', status: 'approved', created_at: new Date(Date.now() - 86400000).toISOString() },
         { id: 1041, account_name: 'Vendor Ops Acc', amount: 82000, description: 'Office Supplies Q1', status: 'approved', created_at: new Date(Date.now() - 172800000).toISOString() }
       ])
@@ -53,33 +58,51 @@ export default function Withdrawals() {
     if (justification) payload.justification = justification
 
     try {
-      const { data, headers } = await apiFetch('/api/withdrawals', {
+      const data = await apiFetch('/api/treasury/withdraw', {
         method: 'POST',
         body: JSON.stringify(payload)
-      }, true)
+      })
 
-      if (headers.get('x-zta-action') === 'JUSTIFY' || data.justify_required) {
+      if (data.structuringFlag) {
+        if (data.matchCount >= 3) {
+          setBlockScreen(true)
+          if (!justification) setSubmitting(false)
+          return
+        } else if (data.matchCount === 2) {
+          setStructuringDelay(30)
+          setStructPendingSuccess('Withdrawal processed successfully')
+          if (!justification) setSubmitting(false)
+          return
+        } else if (data.matchCount === 1) {
+          setError('') // clear error
+          setSuccess("Repeated transaction detected. If this wasn't intentional, please contact support.")
+        }
+      }
+
+      if (data.justify_required) {
         setJustifyData({ message: data.message })
         return
       }
       
-      if (headers.get('x-zta-action') === 'REQUIRE_MFA' || data.mfa_required || data.step_up_required) {
+      if (data.mfa_required || data.step_up_required) {
         setFreezeData({ mode: 'mfa', data })
         return
       }
 
-      if (headers.get('x-zta-action') === 'ADMIN_APPROVAL' || data.admin_approval_required) {
+      if (data.admin_approval_required) {
         setFreezeData({ mode: 'admin', data })
         return
       }
 
-      setSuccess('Withdrawal processed successfully')
+      if (data.matchCount !== 1) {
+         setSuccess('Withdrawal processed successfully')
+      }
       setFormData({})
       loadData()
     } catch (err) {
       setError(err.message || 'Failed to process withdrawal')
     } finally {
-      if (!justification) setSubmitting(false)
+      if (!justification && !structuringDelay && !blockScreen) setSubmitting(false)
     }
   }
 
@@ -95,7 +118,39 @@ export default function Withdrawals() {
     setFreezeData(null)
     setJustifyData(null)
     setFormData({})
-    setError('Action was blocked or denied.')
+    setDeniedModal('This action has been permanently blocked by the security administrator.')
+  }
+
+  // Structuring delay timer effect
+  useEffect(() => {
+    let interval = null;
+    if (structuringDelay > 0) {
+      interval = setInterval(() => {
+        setStructuringDelay((d) => {
+          if (d <= 1) {
+            clearInterval(interval);
+            if (structPendingSuccess) setSuccess(structPendingSuccess);
+            setFormData({}); loadData();
+            return 0;
+          }
+          return d - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [structuringDelay, structPendingSuccess]);
+
+  if (blockScreen) {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(20, 0, 0, 0.95)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+        <ShieldAlert size={64} color="var(--danger)" style={{ marginBottom: '24px' }} />
+        <h1 style={{ color: '#fff', fontSize: '32px', marginBottom: '16px' }}>Account Temporarily Suspended</h1>
+        <p style={{ color: '#ccc', fontSize: '18px', maxWidth: '600px', textAlign: 'center', marginBottom: '40px' }}>
+          Suspicious repetitive transaction activity has been detected. Your account is under review. Reference: TXN-{Date.now()}. Contact support to appeal.
+        </p>
+        <button className="btn btn-primary" style={{ padding: '12px 32px', fontSize: '18px' }} onClick={() => window.location.reload()}>Contact Support</button>
+      </div>
+    )
   }
 
   return (
@@ -178,6 +233,25 @@ export default function Withdrawals() {
 
       {freezeData && <FreezeOverlay mode={freezeData.mode} data={freezeData.data} onResolved={handleResolved} onDenied={handleDenied} />}
       {justifyData && <JustifyModal message={justifyData.message} onSubmit={(j) => handleWithdraw(j)} onCancel={() => setJustifyData(null)} />}
+      
+      {/* 30s Structuring Delay Modal */}
+      <Modal show={structuringDelay > 0} onClose={() => setStructuringDelay(0)} title="Security Review Pending" icon={<Clock size={20} color="var(--warning)" />}
+        footer={<button className="btn btn-outline" onClick={() => { setStructuringDelay(0); setSuccess(''); setError('Transaction cancelled locally.'); }}>Cancel Transaction</button>}>
+        <div style={{ textAlign: 'center', padding: '24px' }}>
+          <h2 style={{ fontSize: '48px', margin: '0 0 16px 0', fontFamily: 'monospace', color: 'var(--warning)' }}>00:{structuringDelay.toString().padStart(2, '0')}</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>This is your 3rd repeated transaction pattern within 24 hours. It will be processed after a 30-second security review.</p>
+        </div>
+      </Modal>
+
+      <Modal show={!!deniedModal} onClose={() => setDeniedModal(null)} title="Action Denied" icon={<ShieldAlert size={20} color="var(--danger)" />} footer={<button className="btn btn-outline" onClick={() => setDeniedModal(null)}>Close</button>}>
+        <div className="alert-block danger">
+          <span className="alert-icon"><ShieldAlert size={18}/></span>
+          <div className="alert-text">
+            <div className="alert-title">Admin Denial</div>
+            <div>{deniedModal}</div>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -72,9 +72,16 @@ router.get('/:id', (req, res) => {
 
 router.post('/:id/resolve', (req, res) => {
   const { resolution, resolved_by = 'admin' } = req.body;
-  if (!queryOne('SELECT * FROM incidents WHERE id = ?', [req.params.id])) return res.status(404).json({ error: 'Not found' });
+  const incident = queryOne('SELECT * FROM incidents WHERE id = ?', [req.params.id]);
+  if (!incident) return res.status(404).json({ error: 'Not found' });
+  
   runSql("UPDATE incidents SET status='resolved',resolution=?,resolved_by=?,resolved_at=datetime('now') WHERE id=?",
     [resolution || 'Resolved by admin', resolved_by, req.params.id]);
+    
+  // Enforce Permanent Block across ZTA Gateway by adding 100-year lock
+  runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 years'))",
+    [incident.user_id, resolution || 'Permanent Block by Security Admin']);
+
   logAuditEvent('incident_resolved',
     { incident_id: req.params.id, resolution },
     resolved_by);

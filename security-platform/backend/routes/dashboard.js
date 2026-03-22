@@ -45,18 +45,24 @@ router.get('/activity', (req, res) => {
 
   const results = queryAll(sql, params);
   
-  // Transform to match frontend expectations
-  const feed = results.map(row => ({
-    id: row.id,
-    userId: row.user_id,
-    username: row.username || row.user_id,
-    action: row.action,
-    riskLevel: row.risk_score >= 80 ? 'high' : row.risk_score >= 40 ? 'medium' : 'low',
-    riskScore: row.risk_score || 0,
-    timestamp: row.timestamp || row.created_at,
-    ipAddress: row.ip_address,
-    details: row.details
-  }));
+  const feed = results.map(row => {
+    let meta = {};
+    try { meta = JSON.parse(row.metadata || '{}'); } catch(e){}
+    return {
+      id: row.id,
+      userId: row.user_id,
+      username: row.username || row.user_id,
+      action: row.action,
+      riskLevel: row.risk_score >= 80 ? 'high' : row.risk_score >= 40 ? 'medium' : 'low',
+      riskScore: row.risk_score || 0,
+      timestamp: row.timestamp || row.created_at,
+      ipAddress: row.ip_address,
+      details: row.details,
+      structuringFlag: meta.structuringFlag || false,
+      structuringDelta: meta.structuringDelta || 0,
+      mlScore: meta.mlScore || 0
+    };
+  });
   
   res.json(feed);
 });
@@ -66,10 +72,17 @@ router.get('/threats', (req, res) => {
   const sql = "SELECT action as category, COUNT(*) as count FROM activities GROUP BY action ORDER BY count DESC LIMIT 5";
   const results = queryAll(sql);
   
-  // Find the max count for scaling (if no results, max is 100)
-  const max = results.length > 0 ? Math.max(...results.map(r => r.count)) : 100;
+  const structCount = queryOne("SELECT COUNT(*) as count FROM transactions WHERE structuringFlag = 1")?.count || 0;
+  if (structCount > 0) {
+    results.push({ category: 'Structuring / Repetitive Txn', count: structCount });
+  }
+
+  results.sort((a, b) => b.count - a.count);
+  const top = results.slice(0, 5);
+
+  const max = top.length > 0 ? Math.max(...top.map(r => r.count)) : 100;
   
-  const threats = results.map(row => ({
+  const threats = top.map(row => ({
     category: row.category,
     count: row.count,
     max: max > 0 ? max : 100
