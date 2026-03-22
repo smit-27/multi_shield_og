@@ -76,7 +76,10 @@ export default function Loans() {
   }
 
   const retryPendingAction = async () => {
-    if (!pendingAction) return
+    if (!pendingAction) {
+      setFreezeOverlay(null)
+      return
+    }
     setFreezeOverlay(null)
     try {
       const res = await apiFetch(`/api/loans/${pendingAction.loanId}/approve`, { method: 'POST', body: JSON.stringify({}) })

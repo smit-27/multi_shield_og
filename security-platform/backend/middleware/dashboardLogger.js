@@ -43,4 +43,4 @@ const logToDashboard = (req, riskScore, action, details = '', extraPayload = {})
   io.emit('zta-activity', activity);
 };
 
-module.exports = { initDashboardLogger, logToDashboard };
+module.exports = { initDashboardLogger, logToDashboard, getIo: () => io };

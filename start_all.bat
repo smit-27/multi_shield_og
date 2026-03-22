@@ -15,12 +15,14 @@ echo Starting Security Platform Frontend (Port 5174)...
 start cmd /k "cd security-platform\frontend && npm run dev"
 
 echo.
-echo All services are starting up! Please wait a few seconds for Keycloak and ML service to initialize.
+echo All services are starting up!
+echo IMPORTANT: Please wait ~45 seconds for Keycloak to initialize before logging in.
+echo 🛡️  ZTA Health Check: http://localhost:3002/api/health
 echo =======================================================
 echo Keycloak Admin: http://localhost:8080 (admin/admin)
 echo Banking Portal: http://localhost:5173
 echo Admin Center:   http://localhost:5174
 echo ML Service:     http://localhost:8000/health
 echo =======================================================
+echo Use 'docker logs -f multishield-banking-ui' to see logs if needed.
 pause
-

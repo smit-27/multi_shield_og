@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
 const { logAuditEvent } = require('../security/auditLogger');
+const { getIo } = require('../middleware/dashboardLogger');
 
 // GET /api/approvals — List all approval requests
 router.get('/', (req, res) => {
@@ -92,6 +93,17 @@ router.post('/:id/decide', (req, res) => {
   logAuditEvent('approval_decision',
     { request_id: req.params.id, decision, response: adminResponse },
     'admin');
+
+  // Emit real-time notification to banking frontend
+  const io = getIo();
+  if (io) {
+    io.emit('approval-decision', {
+      request_id: parseInt(req.params.id),
+      incident_id: request.incident_id,
+      decision: decision,
+      admin_response: adminResponse || `Action ${decision} by admin`
+    });
+  }
 
   res.json({ success: true, message: `Request ${decision}` });
 });

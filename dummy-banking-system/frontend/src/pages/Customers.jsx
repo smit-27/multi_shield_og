@@ -75,7 +75,10 @@ export default function Customers() {
   }
 
   const retryPendingAction = async () => {
-    if (!pendingAction) return
+    if (!pendingAction) {
+      setFreezeOverlay(null)
+      return
+    }
     setFreezeOverlay(null)
     setExporting(true)
     try {

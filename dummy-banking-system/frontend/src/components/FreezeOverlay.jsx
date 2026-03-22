@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ShieldAlert, ShieldCheck, Ban, Shield, AlertTriangle, MessageSquare } from 'lucide-react'
+import { io as ioClient } from 'socket.io-client'
 
 const SECURITY_PLATFORM_URL = 'http://127.0.0.1:3002'
 const SECURITY_FRONTEND_URL = 'http://127.0.0.1:5174'
@@ -13,8 +14,46 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
   const [sending, setSending] = useState(false)
   const pollRef = useRef(null)
   const popupRef = useRef(null)
+  const socketRef = useRef(null)
+  
+  // Prevent stale closures
+  const onResolvedRef = useRef(onResolved)
+  const onDeniedRef = useRef(onDenied)
+  useEffect(() => {
+    onResolvedRef.current = onResolved
+    onDeniedRef.current = onDenied
+  }, [onResolved, onDenied])
 
-  // Poll for status updates
+  // Real-time Socket.io listener for instant admin decisions
+  useEffect(() => {
+    if (status !== 'pending') return
+    if (mode !== 'admin' && mode !== 'mfa_escalated') return
+    if (!data?.request_id) return
+
+    const socket = ioClient(SECURITY_PLATFORM_URL, { transports: ['websocket', 'polling'] })
+    socketRef.current = socket
+
+    socket.on('approval-decision', (event) => {
+      // Match by request_id (approval_requests.id)
+      if (event.request_id == data.request_id) {
+        if (event.decision === 'approved') {
+          setStatus('approved')
+          setAdminResponse(event.admin_response || '')
+          setTimeout(() => onResolvedRef.current?.(), 2500)
+        } else if (event.decision === 'denied') {
+          setStatus('denied')
+          setAdminResponse(event.admin_response || 'No reason provided')
+        }
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [mode, data, status])
+
+  // Poll for status updates (fallback if Socket.io fails)
   useEffect(() => {
     if (status !== 'pending') return
 
@@ -26,7 +65,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           if (result.status === 'completed') {
             setStatus('completed')
             if (popupRef.current) popupRef.current.close()
-            onResolved?.()
+            setTimeout(() => onResolvedRef.current?.(), 2500)
           } else if (result.status === 'failed') {
             setStatus('failed')
             if (popupRef.current) popupRef.current.close()
@@ -41,11 +80,10 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           if (result.status === 'approved') {
             setStatus('approved')
             setAdminResponse(result.admin_response || '')
-            onResolved?.()
+            setTimeout(() => onResolvedRef.current?.(), 2500)
           } else if (result.status === 'denied') {
             setStatus('denied')
             setAdminResponse(result.admin_response || 'No reason provided')
-            // Removed automatic onDenied?.() so the popup stays open for the user to read
           }
         }
       } catch (err) {
@@ -115,6 +153,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           {adminResponse && <p className="admin-response">Admin: "{adminResponse}"</p>}
           <p className="freeze-subtitle">Unfreezing your session... You may now continue.</p>
           <div className="freeze-progress-bar"><div className="freeze-progress-fill resolved" /></div>
+          <button className="btn btn-primary" style={{marginTop: '20px', width: '100%'}} onClick={() => onResolvedRef.current?.()}>Continue to app</button>
         </div>
       </div>
     )
@@ -129,7 +168,7 @@ export default function FreezeOverlay({ mode, data, onResolved, onDenied }) {
           <h2>Action Denied by Admin</h2>
           <p className="admin-response">"{adminResponse}"</p>
           <p className="freeze-subtitle">This action has been permanently blocked. Contact your security administrator for more information.</p>
-          <button className="btn btn-outline freeze-close-btn" onClick={onDenied}>Close</button>
+          <button className="btn btn-outline freeze-close-btn" onClick={() => onDeniedRef.current?.()}>Close</button>
         </div>
       </div>
     )
