@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { queryAll, queryOne, runSql } = require('../db');
 const { logAuditEvent } = require('../security/auditLogger');
+const { getIo } = require('../middleware/dashboardLogger');
 
 router.get('/', (req, res) => {
   const { status, limit = 50 } = req.query;
@@ -92,6 +93,19 @@ router.post('/:id/approve', (req, res) => {
   logAuditEvent('incident_approved',
     { incident_id: req.params.id },
     approved_by);
+
+  // Emit real-time notification to banking frontend
+  const io = getIo();
+  if (io) {
+    const approval = queryOne('SELECT * FROM approval_requests WHERE incident_id = ?', [req.params.id]);
+    io.emit('approval-decision', {
+      request_id: approval?.id,
+      incident_id: parseInt(req.params.id),
+      decision: 'approved',
+      admin_response: 'Approved by admin override'
+    });
+  }
+
   res.json({ success: true, message: 'Action approved' });
 });
 
@@ -103,7 +117,19 @@ router.post('/:id/reject', (req, res) => {
   runSql("UPDATE incidents SET status='rejected',resolution=?,resolved_by=?,resolved_at=datetime('now') WHERE id=?", [reason, rejected_by, req.params.id]);
   runSql("UPDATE approval_requests SET status='denied',admin_response=?,resolved_by=?,resolved_at=datetime('now') WHERE incident_id=?", [reason, rejected_by, req.params.id]);
   runSql("INSERT INTO audit_log (event_type,details,performed_by) VALUES ('incident_rejected',?,?)", [JSON.stringify({ incident_id: req.params.id }), rejected_by]);
-  
+
+  // Emit real-time notification to banking frontend
+  const io = getIo();
+  if (io) {
+    const approval = queryOne('SELECT * FROM approval_requests WHERE incident_id = ?', [req.params.id]);
+    io.emit('approval-decision', {
+      request_id: approval?.id,
+      incident_id: parseInt(req.params.id),
+      decision: 'denied',
+      admin_response: reason
+    });
+  }
+
   res.json({ success: true, message: 'Action rejected' });
 });
 

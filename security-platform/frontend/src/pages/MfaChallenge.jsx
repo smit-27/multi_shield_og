@@ -320,6 +320,7 @@ export default function MfaChallenge() {
               <div className="mfa-info-row"><span>Status</span><span className="text-success">Verified ✓</span></div>
             </div>
             <p className="mfa-hint">This window will automatically close in 3 seconds...</p>
+            <button className="btn btn-primary" style={{marginTop: '16px', width: '100%'}} onClick={() => window.close()}>Close Window Now</button>
           </div>
         </div>
       </div>

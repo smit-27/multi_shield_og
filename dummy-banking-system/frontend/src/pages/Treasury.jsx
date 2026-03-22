@@ -88,7 +88,10 @@ export default function Treasury() {
 
   // Retry action after MFA/approval success
   const retryPendingAction = async () => {
-    if (!pendingAction) return
+    if (!pendingAction) {
+      setFreezeOverlay(null)
+      return
+    }
     setFreezeOverlay(null)
     setSubmitting(true)
     try {
