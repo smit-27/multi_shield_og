@@ -19,12 +19,20 @@ async function start() {
   const treasuryRouter = require('./routes/treasury');
   const loansRouter = require('./routes/loans');
   const customersRouter = require('./routes/customers');
+  const withdrawalsRouter = require('./routes/withdrawals');
   const { queryAll } = require('./db');
 
   app.use('/api/auth', authRouter);
   app.use('/api/treasury', authMiddleware, treasuryRouter);
   app.use('/api/loans', authMiddleware, loansRouter);
   app.use('/api/customers', authMiddleware, customersRouter);
+  app.use('/api/withdrawals', authMiddleware, withdrawalsRouter);
+
+  // GET /api/accounts - list all accounts (used by Cash Management page)
+  app.get('/api/accounts', authMiddleware, (req, res) => {
+    const accounts = queryAll('SELECT * FROM accounts ORDER BY account_type');
+    res.json(accounts);
+  });
 
   app.get('/api/activity-logs', authMiddleware, (req, res) => {
     const { limit = 50 } = req.query;

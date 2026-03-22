@@ -48,7 +48,9 @@ router.post('/withdraw', createSecurityCheck('withdraw'), (req, res) => {
   if (!account) return res.status(404).json({ error: 'Account not found' });
 
   console.log(`[DEBUG] Withdraw attempt: Account ${account_id}, Balance ${account.balance}, Amount ${amount}, Type of amount: ${typeof amount}`);
-  // Removed balance check for testing
+  if (account.balance < amount) {
+    return res.status(400).json({ error: 'Insufficient funds', message: `Account balance ₹${Number(account.balance).toLocaleString('en-IN')} is less than withdrawal amount ₹${Number(amount).toLocaleString('en-IN')}` });
+  }
 
   const txId = `TX${uuidv4().slice(0, 8).toUpperCase()}`;
 
@@ -69,7 +71,9 @@ router.post('/transfer', createSecurityCheck('transfer'), (req, res) => {
   if (!fromAccount || !toAccount) return res.status(404).json({ error: 'Account not found' });
 
   console.log(`[DEBUG] Transfer attempt: From ${from_account_id} (Bal: ${fromAccount.balance}) to ${to_account_id}, Amount ${amount}, Type of amount: ${typeof amount}`);
-  // Removed balance check for testing
+  if (fromAccount.balance < amount) {
+    return res.status(400).json({ error: 'Insufficient funds', message: `Source account balance ₹${Number(fromAccount.balance).toLocaleString('en-IN')} is less than transfer amount ₹${Number(amount).toLocaleString('en-IN')}` });
+  }
 
   const txId = `TX${uuidv4().slice(0, 8).toUpperCase()}`;
 
