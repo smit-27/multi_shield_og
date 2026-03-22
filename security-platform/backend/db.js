@@ -163,7 +163,7 @@ async function initDb() {
       ['POL007', 'Max Loan Approval', 'loan', 'max_loan', 100000000, 'Max loan without escalation (₹10 Cr)'],
       ['POL008', 'Justify Threshold', 'risk', 'justify_threshold', 40, 'Risk score requiring justification (Tier 2)'],
       ['POL009', 'MFA Threshold', 'risk', 'mfa_threshold', 60, 'Risk score requiring MFA (Tier 3)'],
-      ['POL010', 'Admin Approval Threshold', 'risk', 'admin_threshold', 90, 'Risk score requiring admin approval (Tier 4)'],
+      ['POL010', 'Admin Approval Threshold', 'risk', 'admin_threshold', 80, 'Risk score requiring admin approval (Tier 4)'],
     ];
     policies.forEach(([id, name, cat, rule, thresh, desc]) => {
       db.run("INSERT INTO policies VALUES (?,?,?,?,?,NULL,1,?,datetime('now'),datetime('now'))", [id, name, cat, rule, thresh, desc]);

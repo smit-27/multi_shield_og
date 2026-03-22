@@ -37,6 +37,17 @@ function createSecurityCheck(actionType) {
       runSql("INSERT INTO activity_logs (user_id, action, details, ip_address, device, risk_score, decision, created_at) VALUES (?,?,?,?,?,?,?,datetime('now'))",
         [user.id, actionType, JSON.stringify(payload), payload.ip_address, payload.device, result.risk_score, result.decision]);
 
+      // DENY: Account suspended (repetitive structuring)
+      if (result.decision === 'DENY') {
+        return res.status(403).json({
+          admin_approval_required: true,
+          request_id: result.request_id,
+          decision: result.decision,
+          reason: result.reason,
+          message: result.reason || 'Account Temporarily Suspended: Suspicious repetitive transaction activity has been detected.'
+        });
+      }
+
       // Tier 4: Admin approval required (score 90-100)
       if (result.decision === 'ADMIN_APPROVAL') {
         return res.status(403).json({
