@@ -4,10 +4,10 @@ import { apiFetch } from '../App'
 import * as faceapi from 'face-api.js'
 
 const STEPS = [
-  { key: 'employee_id', label: 'Employee ID', icon: '🪪', description: 'Enter your employee identification number' },
-  { key: 'password', label: 'Password', icon: '🔑', description: 'Enter your security password' },
-  { key: 'face', label: 'Face Recognition', icon: '📷', description: 'Verify your identity with face scan' },
-  { key: 'otp', label: 'OTP Verification', icon: '📲', description: 'Enter the one-time passcode' }
+  { key: 'employee_id', label: 'Employee ID', description: 'Enter your employee identification number' },
+  { key: 'password', label: 'Password', description: 'Enter your security password' },
+  { key: 'face', label: 'Face Recognition', description: 'Verify your identity with face scan' },
+  { key: 'otp', label: 'OTP Verification', description: 'Enter the one-time passcode' }
 ]
 
 export default function MfaChallenge() {
@@ -24,7 +24,7 @@ export default function MfaChallenge() {
   const [completed, setCompleted] = useState(false)
   const [failed, setFailed] = useState(false)
   const [failData, setFailData] = useState(null)
-  
+
   // Auto-close window when completed
   useEffect(() => {
     if (completed) {
@@ -34,7 +34,7 @@ export default function MfaChallenge() {
       return () => clearTimeout(timer)
     }
   }, [completed])
-  
+
   // Face Recognition State
   const [modelsLoaded, setModelsLoaded] = useState(false)
   const [faceMatcher, setFaceMatcher] = useState(null)
@@ -56,7 +56,7 @@ export default function MfaChallenge() {
         faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
         faceapi.nets.faceRecognitionNet.loadFromUri('/models')
       ])
-      
+
       const labels = ['Teammate1', 'Teammate2', 'Teammate3', 'Teammate4']
       const labeledFaceDescriptors = await Promise.all(
         labels.map(async label => {
@@ -73,7 +73,7 @@ export default function MfaChallenge() {
               // Ignore securely if ${i}.jpg does not exist
             }
           }
-          
+
           if (descriptors.length === 0) {
             console.warn(`No valid labeled images found for ${label}`)
             return null
@@ -81,14 +81,14 @@ export default function MfaChallenge() {
           return new faceapi.LabeledFaceDescriptors(label, descriptors)
         })
       )
-      
+
       const validDescriptors = labeledFaceDescriptors.filter(d => d !== null)
       if (validDescriptors.length > 0) {
         // Enforce strict threshold: 0.42 (balances security and camera variations)
         setFaceMatcher(new faceapi.FaceMatcher(validDescriptors, 0.42))
       }
       setModelsLoaded(true)
-    } catch(err) {
+    } catch (err) {
       console.error('FaceAPI Init Error:', err)
       setError("Failed to load face recognition models. Ensure /models directory exists.")
     }
@@ -111,7 +111,7 @@ export default function MfaChallenge() {
     if (!modelsLoaded) return setError("Models are still loading...")
     setFaceScanning(true)
     setScanStatusMsg('Starting camera...')
-    
+
     navigator.mediaDevices.getUserMedia({ video: {} })
       .then(stream => {
         if (videoRef.current) {
@@ -141,9 +141,9 @@ export default function MfaChallenge() {
         body: JSON.stringify({ value: 'face_failed', reason })
       })
       if (res.status === 'completed') {
-         // shouldn't happen on failure, but handle gracefully
+        // shouldn't happen on failure, but handle gracefully
       } else {
-         setChallenge(prev => ({ ...prev, step: res.step }))
+        setChallenge(prev => ({ ...prev, step: res.step }))
       }
     } catch (err) {
       const data = err.data || {}
@@ -168,7 +168,7 @@ export default function MfaChallenge() {
     setScanStatusMsg('Analyzing face...')
     const displaySize = { width: videoRef.current.width, height: videoRef.current.height }
     faceapi.matchDimensions(canvasRef.current, displaySize)
-    
+
     let scanAttempts = 0
     let unknownFaceCount = 0
     const maxAttempts = 50 // roughly 5 seconds at 100ms intervals
@@ -192,7 +192,7 @@ export default function MfaChallenge() {
 
         if (detections) {
           const match = faceMatcher.findBestMatch(detections.descriptor)
-          
+
           const canvas = canvasRef.current
           if (canvas) {
             const resizedDetections = faceapi.resizeResults(detections, displaySize)
@@ -211,12 +211,12 @@ export default function MfaChallenge() {
             setScanStatusMsg(`Recognized: ${match.label} (Confidence: ${((1 - match.distance) * 100).toFixed(1)}%)`)
             setFaceDone(true)
             stopFaceScan()
-            
+
             // Auto-submit success
             setVerifying(true)
             try {
               const res = await apiFetch(`/api/mfa/${challengeId}/verify`, { method: 'POST', body: JSON.stringify({ value: 'face_verified' }) })
-              
+
               if (res.status === 'completed') {
                 setCompleted(true)
                 setChallenge(prev => ({ ...prev, step: 4, status: 'completed' }))
@@ -395,20 +395,20 @@ export default function MfaChallenge() {
                 </div>
               ) : faceScanning ? (
                 <div style={{ position: 'relative', width: '320px', height: '240px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid var(--primary-color)' }}>
-                  <video 
-                    ref={videoRef} 
-                    autoPlay 
-                    muted 
-                    onPlay={onVideoPlay} 
-                    width="320" 
-                    height="240" 
-                    style={{ position: 'absolute', top: 0, left: 0 }} 
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    onPlay={onVideoPlay}
+                    width="320"
+                    height="240"
+                    style={{ position: 'absolute', top: 0, left: 0 }}
                   />
-                  <canvas 
-                    ref={canvasRef} 
-                    width="320" 
-                    height="240" 
-                    style={{ position: 'absolute', top: 0, left: 0 }} 
+                  <canvas
+                    ref={canvasRef}
+                    width="320"
+                    height="240"
+                    style={{ position: 'absolute', top: 0, left: 0 }}
                   />
                   <div className="scan-text" style={{ position: 'absolute', bottom: '10px', width: '100%', textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px' }}>
                     {scanStatusMsg}
