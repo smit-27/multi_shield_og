@@ -147,7 +147,7 @@ async function analyzeRequestRisk(req, res, next) {
 
   // Perform Structuring Specific Auto-Incidents & Suspension
   if (riskResult.blockFlag) {
-    runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 years'))",
+    runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 minutes'))",
       [activity.user_id, 'Repetitive transaction structuring detected']);
     runSql("INSERT INTO incidents (user_id, role, action, amount, risk_score, decision, reason, status, factors) VALUES (?,?,?,?,?,?,?,?,?)",
       [activity.user_id, activity.role, activity.action, activity.amount, riskResult.score, 'DENY', 'Structuring pattern — account suspended', 'open', JSON.stringify(riskResult.factors)]);

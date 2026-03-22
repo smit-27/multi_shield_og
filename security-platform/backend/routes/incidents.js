@@ -79,8 +79,8 @@ router.post('/:id/resolve', (req, res) => {
   runSql("UPDATE incidents SET status='resolved',resolution=?,resolved_by=?,resolved_at=datetime('now') WHERE id=?",
     [resolution || 'Resolved by admin', resolved_by, req.params.id]);
     
-  // Enforce Permanent Block across ZTA Gateway by adding 100-year lock
-  runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 years'))",
+  // Enforce Permanent Block across ZTA Gateway by adding 100-minutes lock
+  runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 minutes'))",
     [incident.user_id, resolution || 'Permanent Block by Security Admin']);
 
   logAuditEvent('incident_resolved',
