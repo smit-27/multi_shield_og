@@ -80,7 +80,7 @@ router.post('/:id/resolve', (req, res) => {
     [resolution || 'Resolved by admin', resolved_by, req.params.id]);
     
   // Enforce Permanent Block across ZTA Gateway by adding 100-minutes lock
-  runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+100 minutes'))",
+  runSql("INSERT INTO account_locks (user_id, reason, expires_at) VALUES (?, ?, datetime('now', '+2 minutes'))",
     [incident.user_id, resolution || 'Permanent Block by Security Admin']);
 
   logAuditEvent('incident_resolved',

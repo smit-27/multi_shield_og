@@ -137,11 +137,16 @@ async function initDb() {
     risk_score REAL,
     status TEXT DEFAULT 'pending',
     current_step INTEGER DEFAULT 0,
+    otp_code TEXT,
     attempts INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')),
     completed_at TEXT,
     expires_at TEXT
   )`);
+  
+  // Migration for existing databases
+  try { db.run("ALTER TABLE zta_step_up_challenges ADD COLUMN otp_code TEXT"); } catch (e) { /* ignore if already exists */ }
+
 
   db.run(`CREATE TABLE IF NOT EXISTS banking_tokens (
     session_id TEXT PRIMARY KEY,

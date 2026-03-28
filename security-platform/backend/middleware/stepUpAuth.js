@@ -28,12 +28,13 @@ function createStepUpChallenge(userId, username, role, action, amount, riskScore
   const challengeId = `STEPUP-${crypto.randomBytes(8).toString('hex')}`;
   const now = new Date().toISOString();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const otpCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
   runSql(
     `INSERT INTO zta_step_up_challenges 
-     (id, user_id, username, role, action, amount, risk_score, status, current_step, attempts, created_at, expires_at) 
-     VALUES (?,?,?,?,?,?,?,'pending',0,0,?,?)`,
-    [challengeId, userId, username, role, action, amount || 0, riskScore, now, expires]
+     (id, user_id, username, role, action, amount, risk_score, status, current_step, otp_code, attempts, created_at, expires_at) 
+     VALUES (?,?,?,?,?,?,?,?,'pending',0,?,0,?,?)`,
+    [challengeId, userId, username, role, action, amount || 0, riskScore, 'pending', 0, otpCode, now, expires]
   );
 
   return challengeId;
@@ -124,7 +125,7 @@ function verifyStepUpStep(challengeId, step, value) {
       break;
 
     case 3: // OTP authentication
-      verified = value === 'A3F1B20E' || value === 'mfa_verify';
+      verified = value === challenge.otp_code || value === 'mfa_verify';
       break;
 
     default:
@@ -162,7 +163,7 @@ function verifyStepUpStep(challengeId, step, value) {
       status: 'pending',
       step: nextStep,
       message: `Step ${step + 1} verified. Please complete step ${nextStep + 1}.`,
-      otp_hint: nextStep === 3 ? 'A3F1B20E' : null
+      otp_hint: nextStep === 3 ? challenge.otp_code : null
     };
   }
 
@@ -234,6 +235,12 @@ function requireStepUp(req, res, next) {
       req.body?.action || req.path,
       req.body?.amount || 0,
       riskScore
+    );
+
+    // Emit real-time log to Dashboard
+    logToDashboard(
+      req, riskScore, 'REQUIRE_MFA', 
+      `MFA Triggered for high-risk ${req.method} ${req.path}. User: ${user.username}`
     );
 
     return res.status(202).json({

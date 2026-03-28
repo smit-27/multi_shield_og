@@ -9,10 +9,25 @@ const { queryOne, runSql } = require('../db');
 // IMPORTANT: This must be BEFORE /:challengeId to avoid Express treating 'active' as a param
 router.get('/active/codes', (req, res) => {
   const { queryAll } = require('../db');
-  const challenges = queryAll(
-    "SELECT id, user_id, username, role, action, amount, risk_score, step, otp_code, created_at FROM mfa_challenges WHERE status='pending' ORDER BY created_at DESC"
+  
+  // Legacy MFA challenges
+  const legacy = queryAll(
+    "SELECT id, user_id, username, role, action, amount, risk_score, step, otp_code, created_at FROM mfa_challenges WHERE status='pending'"
   ) || [];
-  res.json({ challenges });
+  
+  // ZTA Step-Up challenges
+  const stepUps = queryAll(
+    "SELECT id, user_id, username, role, action, amount, risk_score, current_step as step, otp_code, created_at FROM zta_step_up_challenges WHERE status='pending'"
+  ) || [];
+  
+  // Unified, sorted list
+  const allChallenges = [...legacy, ...stepUps].sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    return timeB - timeA;
+  });
+  
+  res.json({ challenges: allChallenges });
 });
 
 // GET /api/mfa/:challengeId — Get challenge status
