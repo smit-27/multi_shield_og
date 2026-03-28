@@ -7,14 +7,6 @@ echo [1/2] Starting Docker Infrastructure (Keycloak, ML Service, ZTA Gateway, Ba
 docker-compose up -d --build
 
 echo.
-echo [2/2] Launching Frontends...
-echo Starting Banking System Frontend (Port 5173)...
-start cmd /k "cd dummy-banking-system\frontend && npm run dev"
-
-echo Starting Security Platform Frontend (Port 5174)...
-start cmd /k "cd security-platform\frontend && npm run dev"
-
-echo.
 echo All services are starting up!
 echo IMPORTANT: Please wait ~45 seconds for Keycloak to initialize before logging in.
 echo 🛡️  ZTA Health Check: http://localhost:3002/api/health
